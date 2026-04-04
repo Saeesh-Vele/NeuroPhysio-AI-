@@ -1,8 +1,8 @@
 import React, { useState, useEffect, type FC } from "react";
 import { FaChartBar } from "react-icons/fa";
 import { auth } from "../../../firebase/config";
-import { savePainLog, getUserPainLogs } from "../../../services/firestoreService";
-import type { PainLog } from "../../../types";
+import { savePainLog, getUserPainLogs, getUserSessions } from "../../../services/firestoreService";
+import type { PainLog, ExerciseSession } from "../../../types";
 
 const BODY_ZONES = [
   { id: "head", label: "Head", cx: 150, cy: 30, r: 22 },
@@ -30,6 +30,7 @@ const PainTracker: FC = () => {
   const [selectedZone, setSelectedZone] = useState("");
   const [notes, setNotes] = useState("");
   const [entries, setEntries] = useState<PainLog[]>([]);
+  const [sessions, setSessions] = useState<ExerciseSession[]>([]);
   const [hoveredZone, setHoveredZone] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -37,6 +38,7 @@ const PainTracker: FC = () => {
     const uid = auth.currentUser?.uid;
     if (!uid) return;
     getUserPainLogs(uid, 20).then(setEntries);
+    getUserSessions(uid, 50).then(setSessions);
   }, []);
 
   const addEntry = async () => {
@@ -80,13 +82,22 @@ const PainTracker: FC = () => {
   const zoneLabel = (id: string) =>
     BODY_ZONES.find((z) => z.id === id)?.label || id.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
-  const relativeTime = (ts: string) => {
-    const diff = Date.now() - new Date(ts).getTime();
-    const mins = Math.floor(diff / 60000);
-    if (mins < 60) return `${mins}m ago`;
-    const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return `${hrs}h ago`;
-    return `${Math.floor(hrs / 24)}d ago`;
+  const formatDateTime = (ts: string) => {
+    const d = new Date(ts);
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" }) + ", " + d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+  };
+
+  // Find the most recent exercise session before a given timestamp
+  const getExerciseBefore = (ts: string): string => {
+    const painTime = new Date(ts).getTime();
+    const before = sessions.filter((s) => new Date(s.timestamp).getTime() <= painTime);
+    if (before.length === 0) return "—";
+    // Sort descending and pick first
+    before.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    const last = before[0];
+    const diffMins = Math.round((painTime - new Date(last.timestamp).getTime()) / 60000);
+    if (diffMins > 120) return "—"; // Only correlate if within 2 hours
+    return `${last.exerciseLabel} (${diffMins}m before)`;
   };
 
   return (
@@ -252,14 +263,14 @@ const PainTracker: FC = () => {
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>Time</th><th>Area</th><th>Level</th><th>Notes</th>
+                    <th>Date & Time</th><th>Area</th><th>Level</th><th>After Exercise</th><th>Notes</th>
                   </tr>
                 </thead>
                 <tbody>
                   {entries.slice(0, 10).map((entry, i) => (
                     <tr key={i}>
-                      <td style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>
-                        {relativeTime(entry.timestamp)}
+                      <td style={{ fontFamily: "var(--font-mono)", fontSize: 12, whiteSpace: "nowrap" }}>
+                        {formatDateTime(entry.timestamp)}
                       </td>
                       <td>{zoneLabel(entry.bodyRegion)}</td>
                       <td>
@@ -267,7 +278,8 @@ const PainTracker: FC = () => {
                           {entry.intensity}/10
                         </span>
                       </td>
-                      <td style={{ color: "var(--color-grey-300)" }}>{entry.notes}</td>
+                      <td style={{ fontSize: 12, color: "var(--color-grey-300)" }}>{getExerciseBefore(entry.timestamp)}</td>
+                      <td style={{ color: "var(--color-grey-300)" }}>{entry.notes || "No notes"}</td>
                     </tr>
                   ))}
                 </tbody>
