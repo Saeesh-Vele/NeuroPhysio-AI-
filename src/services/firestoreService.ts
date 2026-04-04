@@ -182,6 +182,7 @@ export async function getUserCognitiveSessions(
     const snap = await getDocs(q);
     const results = snap.docs.map((d) => ({ id: d.id, ...d.data() } as CognitiveSession));
     results.sort((a, b) => (b.timestamp || "").localeCompare(a.timestamp || ""));
+    console.log("[Firestore] Fetched cognitive sessions:", results.length);
     return results.slice(0, max);
   } catch (err) {
     console.error("[Firestore] getUserCognitiveSessions error:", err);
@@ -257,5 +258,38 @@ export async function getUserReports(
   } catch (err) {
     console.error("[Firestore] getUserReports error:", err);
     return [];
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  COGNITIVE UNLOCK PROGRESS
+// ═══════════════════════════════════════════════
+
+export async function getUserUnlockProgress(
+  uid: string
+): Promise<string[]> {
+  try {
+    const snap = await getDoc(doc(db, "users", uid));
+    if (snap.exists()) {
+      const data = snap.data();
+      return data.unlockedLevels ?? ["Easy"];
+    }
+    return ["Easy"];
+  } catch (err) {
+    console.error("[Firestore] getUserUnlockProgress error:", err);
+    return ["Easy"];
+  }
+}
+
+export async function updateUserUnlockProgress(
+  uid: string,
+  unlockedLevels: string[]
+): Promise<void> {
+  try {
+    const ref = doc(db, "users", uid);
+    await updateDoc(ref, { unlockedLevels });
+  } catch (err) {
+    console.error("[Firestore] updateUserUnlockProgress error:", err);
+    throw err;
   }
 }

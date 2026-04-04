@@ -164,7 +164,7 @@ export interface FeedbackResult {
 // ── Session ──
 export interface ExerciseSession {
   id?: string;
-  odudId: string;
+  userId: string;
   exerciseId: string;
   exerciseLabel: string;
   reps: number;
@@ -190,11 +190,13 @@ export interface PainLog {
 // ── Cognitive Session ──
 export interface CognitiveSession {
   id?: string;
-  odudId: string;
+  userId: string;
   accuracy: number;      // 0-100
   responseTimeMs: number;
   level: number;
   difficulty: string;
+  gridSize?: number;     // e.g. 3, 4, 5
+  completed?: boolean;   // true if round was finished
   timestamp: string;
 }
 

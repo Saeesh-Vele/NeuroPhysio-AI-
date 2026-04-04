@@ -1,11 +1,21 @@
-import React, { useState, useCallback, type FC } from "react";
+import React, { useState, useCallback, useEffect, type FC } from "react";
 import { FaBrain } from "react-icons/fa";
 import { auth } from "../../../firebase/config";
-import { saveCognitiveSession } from "../../../services/firestoreService";
+import {
+  saveCognitiveSession,
+  getUserCognitiveSessions,
+  getUserUnlockProgress,
+  updateUserUnlockProgress,
+} from "../../../services/firestoreService";
 
-const GRID_SIZE = 3;
-const TOTAL_CELLS = GRID_SIZE * GRID_SIZE;
 const COLORS = ["#ef4444", "#3b82f6", "#22c55e", "#f59e0b"];
+
+/** Grid size derived from difficulty */
+function getGridSize(difficulty: "Easy" | "Medium" | "Hard"): number {
+  if (difficulty === "Medium") return 4;
+  if (difficulty === "Hard") return 5;
+  return 3;
+}
 
 type GameState = "idle" | "showing" | "input" | "result";
 
@@ -24,15 +34,62 @@ const CognitiveTrainer: FC = () => {
   const [level, setLevel] = useState(3);
   const [history, setHistory] = useState<{ score: number; time: number; level: number }[]>([]);
 
+  // Unlock system state
+  const [unlockedLevels, setUnlockedLevels] = useState<string[]>(["Easy"]);
+  const [unlockLoading, setUnlockLoading] = useState(true);
+
+  // Dynamic grid size
+  const gridSize = getGridSize(difficulty);
+  const totalCells = gridSize * gridSize;
+
   const patternLength = difficulty === "Easy" ? 3 : difficulty === "Medium" ? 4 : 5;
+
+  // Fetch unlock progress on mount
+  useEffect(() => {
+    const uid = auth.currentUser?.uid;
+    if (!uid) {
+      setUnlockLoading(false);
+      return;
+    }
+    getUserUnlockProgress(uid)
+      .then((levels) => setUnlockedLevels(levels))
+      .catch(() => {})
+      .finally(() => setUnlockLoading(false));
+  }, []);
+
+  // Check if a perfect score should unlock the next difficulty
+  const checkAndUnlock = useCallback(
+    async (currentDifficulty: "Easy" | "Medium" | "Hard", acc: number) => {
+      if (acc !== 100) return;
+      const uid = auth.currentUser?.uid;
+      if (!uid) return;
+
+      let updated = false;
+      const newUnlocked = [...unlockedLevels];
+
+      if (currentDifficulty === "Easy" && !newUnlocked.includes("Medium")) {
+        newUnlocked.push("Medium");
+        updated = true;
+      } else if (currentDifficulty === "Medium" && !newUnlocked.includes("Hard")) {
+        newUnlocked.push("Hard");
+        updated = true;
+      }
+
+      if (updated) {
+        setUnlockedLevels(newUnlocked);
+        await updateUserUnlockProgress(uid, newUnlocked).catch(() => {});
+      }
+    },
+    [unlockedLevels]
+  );
 
   const generatePattern = useCallback(() => {
     const cells = new Set<number>();
     while (cells.size < patternLength) {
-      cells.add(Math.floor(Math.random() * TOTAL_CELLS));
+      cells.add(Math.floor(Math.random() * totalCells));
     }
     return Array.from(cells);
-  }, [patternLength]);
+  }, [patternLength, totalCells]);
 
   const startGame = useCallback(() => {
     const newPattern = generatePattern();
@@ -84,14 +141,19 @@ const CognitiveTrainer: FC = () => {
         const uid = auth.currentUser?.uid;
         if (uid) {
           saveCognitiveSession({
-            odudId: uid,
+            userId: uid,
             accuracy: acc,
             responseTimeMs: elapsed,
             level,
             difficulty,
+            gridSize,
+            completed: true,
             timestamp: new Date().toISOString(),
           }).catch(() => {});
         }
+
+        // Check unlock progression
+        checkAndUnlock(difficulty, acc);
       }
       return next;
     });
@@ -106,6 +168,8 @@ const CognitiveTrainer: FC = () => {
     if (gameState === "result" && pattern.includes(index)) return "missed";
     return "empty";
   };
+
+  const isDifficultyLocked = (d: "Easy" | "Medium" | "Hard") => !unlockedLevels.includes(d);
 
   return (
     <div className="cognitive-page fade-in">
@@ -129,7 +193,7 @@ const CognitiveTrainer: FC = () => {
         <div className="stat-card fade-up delay-3">
           <div className="stat-card__icon stat-card__icon--green">⚡</div>
           <div className="stat-card__value">Lv.{level}</div>
-          <div className="stat-card__label">{difficulty}</div>
+          <div className="stat-card__label">{difficulty} · {gridSize}×{gridSize}</div>
         </div>
       </div>
 
@@ -139,22 +203,33 @@ const CognitiveTrainer: FC = () => {
           <div className="widget__header">
             <h3 className="widget__title">Pattern Recall</h3>
             <div style={{ display: "flex", gap: 8 }}>
-              {(["Easy", "Medium", "Hard"] as const).map((d) => (
-                <button
-                  key={d}
-                  className={`btn ${difficulty === d ? "btn-primary" : "btn-outline"}`}
-                  style={{ padding: "6px 14px", fontSize: 12 }}
-                  onClick={() => {
-                    setDifficulty(d);
-                    setGameState("idle");
-                    setPattern([]);
-                    setUserPattern([]);
-                    setMessage("Press Start to begin.");
-                  }}
-                >
-                  {d}
-                </button>
-              ))}
+              {(["Easy", "Medium", "Hard"] as const).map((d) => {
+                const locked = isDifficultyLocked(d);
+                return (
+                  <button
+                    key={d}
+                    className={`btn ${difficulty === d ? "btn-primary" : "btn-outline"}`}
+                    style={{
+                      padding: "6px 14px",
+                      fontSize: 12,
+                      opacity: locked ? 0.4 : 1,
+                      cursor: locked ? "not-allowed" : "pointer",
+                    }}
+                    disabled={locked}
+                    title={locked ? `Score 100% in ${d === "Hard" ? "Medium" : "Easy"} to unlock` : d}
+                    onClick={() => {
+                      if (locked) return;
+                      setDifficulty(d);
+                      setGameState("idle");
+                      setPattern([]);
+                      setUserPattern([]);
+                      setMessage("Press Start to begin.");
+                    }}
+                  >
+                    {locked ? `🔒 ${d}` : d}
+                  </button>
+                );
+              })}
             </div>
           </div>
           <div className="widget__body" style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
@@ -162,13 +237,23 @@ const CognitiveTrainer: FC = () => {
               {message}
             </p>
 
-            <div className="pattern-grid">
-              {Array.from({ length: TOTAL_CELLS }).map((_, i) => {
+            <div
+              className="pattern-grid"
+              style={{
+                gridTemplateColumns: `repeat(${gridSize}, 1fr)`,
+                maxWidth: gridSize === 3 ? 280 : gridSize === 4 ? 360 : 420,
+              }}
+            >
+              {Array.from({ length: totalCells }).map((_, i) => {
                 const state = getCellState(i);
                 return (
                   <button
                     key={i}
                     className={`pattern-cell pattern-cell--${state}`}
+                    style={{
+                      width: gridSize === 5 ? 64 : gridSize === 4 ? 72 : 80,
+                      height: gridSize === 5 ? 64 : gridSize === 4 ? 72 : 80,
+                    }}
                     onClick={() => handleCellClick(i)}
                     disabled={gameState !== "input"}
                   />

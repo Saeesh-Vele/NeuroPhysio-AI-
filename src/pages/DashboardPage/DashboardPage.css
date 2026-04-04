@@ -209,9 +209,7 @@
 /* ── Pattern Grid (Cognitive) ── */
 .pattern-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
   gap: 12px;
-  max-width: 280px;
 }
 .pattern-cell {
   width: 80px;

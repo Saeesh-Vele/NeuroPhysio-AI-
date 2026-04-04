@@ -31,10 +31,11 @@ const Progress: FC = () => {
       setSessions(s);
       setPainLogs(p);
       setCogSessions(c);
+      console.log("Fetched cognitive sessions:", c);
       setLoading(false);
 
       try {
-        const insight = await generateWeeklySummary(s, p);
+        const insight = await generateWeeklySummary(s, p, c);
         setAiInsight(insight);
       } catch {}
     })();

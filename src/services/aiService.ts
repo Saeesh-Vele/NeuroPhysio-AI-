@@ -2,7 +2,7 @@
    AI Insights Service — Gemini (deep) + Groq (fast)
    ══════════════════════════════════════════════════════════════ */
 
-import type { ExerciseSession, PainLog } from "../types";
+import type { ExerciseSession, PainLog, CognitiveSession } from "../types";
 
 const GEMINI_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 const GROQ_KEY = import.meta.env.VITE_GROQ_API_KEY;
@@ -113,7 +113,8 @@ Reply with ONLY the coaching message, nothing else.`;
 // ── Gemini (deep weekly summary) ─────────────────────────
 export async function generateWeeklySummary(
   sessions: ExerciseSession[],
-  painLogs: PainLog[]
+  painLogs: PainLog[],
+  cognitiveSessions?: CognitiveSession[]
 ): Promise<string> {
   try {
     const sessionSummary = sessions
@@ -129,6 +130,34 @@ export async function generateWeeklySummary(
       .map((p) => `${p.timestamp}: ${p.bodyRegion} — ${p.intensity}/10 (${p.notes})`)
       .join("\n");
 
+    // Build cognitive summary if data exists
+    let cognitiveSummary = "No cognitive sessions";
+    if (cognitiveSessions && cognitiveSessions.length > 0) {
+      const cogSlice = cognitiveSessions.slice(0, 15);
+      const avgAcc = Math.round(cogSlice.reduce((a, c) => a + (c.accuracy || 0), 0) / cogSlice.length);
+      const avgTime = Math.round(cogSlice.reduce((a, c) => a + (c.responseTimeMs || 0), 0) / cogSlice.length);
+      // Trend: compare first half vs second half
+      const mid = Math.floor(cogSlice.length / 2);
+      const recentHalf = cogSlice.slice(0, mid || 1);
+      const olderHalf = cogSlice.slice(mid || 1);
+      const recentAvg = recentHalf.length > 0 ? recentHalf.reduce((a, c) => a + c.accuracy, 0) / recentHalf.length : 0;
+      const olderAvg = olderHalf.length > 0 ? olderHalf.reduce((a, c) => a + c.accuracy, 0) / olderHalf.length : 0;
+      const trend = recentAvg > olderAvg + 5 ? "Improving" : recentAvg < olderAvg - 5 ? "Declining" : "Stable";
+      // Difficulty distribution
+      const diffCounts: Record<string, number> = {};
+      cogSlice.forEach((c) => { diffCounts[c.difficulty] = (diffCounts[c.difficulty] || 0) + 1; });
+      const diffStr = Object.entries(diffCounts).map(([k, v]) => `${k}: ${v}`).join(", ");
+
+      cognitiveSummary = [
+        `Total sessions: ${cogSlice.length}`,
+        `Avg Accuracy: ${avgAcc}%`,
+        `Avg Response Time: ${(avgTime / 1000).toFixed(1)}s`,
+        `Trend: ${trend}`,
+        `Difficulty Distribution: ${diffStr}`,
+        ...cogSlice.slice(0, 5).map((c) => `${c.timestamp}: Level ${c.level}, ${c.accuracy}%, ${(c.responseTimeMs / 1000).toFixed(1)}s (${c.difficulty})`),
+      ].join("\n");
+    }
+
     const prompt = `${SYSTEM_PROMPT}
 
 Analyze this patient's 7-day rehabilitation data and provide a detailed, actionable recovery report.
@@ -139,10 +168,16 @@ ${sessionSummary || "No sessions recorded"}
 PAIN LOGS:
 ${painSummary || "No pain logs"}
 
+COGNITIVE TRAINING SESSIONS:
+${cognitiveSummary}
+
 Provide your analysis in this exact format (be detailed and specific — at least 2-3 sentences per section):
 
 PROGRESS OVERVIEW
 Analyze the patient's exercise consistency, rep completion rates, and overall trajectory. Mention specific exercises and how they've improved.
+
+COGNITIVE PERFORMANCE
+Analyze memory/pattern recall trends, response time, and difficulty progression. Skip if no cognitive data.
 
 PAIN & RISK ASSESSMENT
 Identify any concerning pain patterns. Flag if any pain levels are above 6/10 or worsening. If no pain logs exist, note the importance of tracking pain.
