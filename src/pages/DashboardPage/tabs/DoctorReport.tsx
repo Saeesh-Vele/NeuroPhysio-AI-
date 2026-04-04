@@ -206,137 +206,363 @@ const DoctorReport: FC = () => {
     try {
       const doc = new jsPDF();
       const w = doc.internal.pageSize.width;
+      const pageH = 297;
+      const margin = 20;
+      const contentW = w - margin * 2;
 
-      // Cover
-      doc.setFillColor(13, 17, 23);
-      doc.rect(0, 0, w, 297, "F");
-      doc.setFillColor(34, 197, 94);
-      doc.rect(0, 0, w, 4, "F");
-      doc.setTextColor(34, 197, 94);
-      doc.setFontSize(32);
-      doc.text("NeuroPhysio AI", 20, 45);
+      // ── Color palette (professional medical white theme) ──
+      const navy = [30, 58, 95] as const;       // headings
+      const darkText = [30, 30, 30] as const;    // body text
+      const greyLabel = [100, 100, 100] as const; // labels
+      const lightGrey = [180, 180, 180] as const; // dividers
+      const accent = [41, 98, 255] as const;      // accent blue
+      const white = [255, 255, 255] as const;
+      const red = [220, 53, 69] as const;
+      const green = [34, 139, 34] as const;
+      const amber = [200, 140, 20] as const;
+
+      // ── Helpers ──
+      const newPage = () => {
+        doc.addPage();
+        doc.setFillColor(...white);
+        doc.rect(0, 0, w, pageH, "F");
+        // Header bar
+        doc.setFillColor(...navy);
+        doc.rect(0, 0, w, 3, "F");
+      };
+
+      const sectionTitle = (title: string, yPos: number): number => {
+        doc.setTextColor(...navy);
+        doc.setFontSize(16);
+        doc.setFont("helvetica", "bold");
+        doc.text(title, margin, yPos);
+        yPos += 2;
+        doc.setDrawColor(...lightGrey);
+        doc.setLineWidth(0.4);
+        doc.line(margin, yPos, w - margin, yPos);
+        return yPos + 8;
+      };
+
+      const statRow = (label: string, value: string, yPos: number): number => {
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(...greyLabel);
+        doc.setFontSize(10);
+        doc.text(label, margin, yPos);
+        doc.setTextColor(...darkText);
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "bold");
+        doc.text(value, w - margin, yPos, { align: "right" });
+        doc.setFont("helvetica", "normal");
+        doc.setDrawColor(230, 230, 230);
+        doc.setLineWidth(0.2);
+        doc.line(margin, yPos + 3, w - margin, yPos + 3);
+        return yPos + 10;
+      };
+
+      // ── Computed insights ──
+      const avgRecentPain = avgRecent;
+      const recoveryRaw = (avgAccuracy * 0.4) + ((100 - avgRecentPain * 10) * 0.3) + (avgCogAccuracy * 0.3);
+      const recoveryScore = Math.max(0, Math.min(100, Math.round(recoveryRaw)));
+      const recoveryLabel = recoveryScore >= 80 ? "Excellent" : recoveryScore >= 60 ? "Moderate" : "Needs Attention";
+      const recoveryColor = recoveryScore >= 80 ? green : recoveryScore >= 60 ? amber : red;
+
+      const expectedSessions = Math.max(1, Math.round(reportDays * 0.7)); // ~5 per week
+      const adherenceRate = Math.min(100, Math.round((totalSessions / expectedSessions) * 100));
+      const adherenceLabel = adherenceRate >= 70 ? "Good" : adherenceRate >= 40 ? "Fair" : "Poor";
+      const adherenceColor = adherenceRate >= 70 ? green : adherenceRate >= 40 ? amber : red;
+
+      const adherenceDesc = adherenceRate >= 70 ? "high" : adherenceRate >= 40 ? "moderate" : "low";
+      const painDesc = painTrend === "Improving" ? "improving" : painTrend === "Worsening" ? "worsening" : "stable";
+      const cogDesc = avgCogAccuracy >= 80 ? "good" : avgCogAccuracy >= 60 ? "moderate" : "low";
+
+      // Risk flags
+      const riskFlags: string[] = [];
+      if (totalSessions < 5) riskFlags.push("Low exercise adherence — fewer than 5 sessions recorded");
+      if (painTrend === "Worsening") riskFlags.push("Pain levels are increasing — recommend clinical review");
+      if (avgRecentPain >= 7) riskFlags.push("Average recent pain is high (≥7/10) — may need intervention");
+      if (avgCogAccuracy < 60 && cogSessions.length > 0) riskFlags.push("Cognitive performance below expected threshold (<60%)");
+      if (avgCogTime > 8000 && cogSessions.length > 0) riskFlags.push("Slow cognitive response time — may indicate fatigue or difficulty");
+
+      // Recommendations
+      const recs: string[] = [];
+      if (adherenceRate < 70) recs.push("Increase exercise frequency to at least 5 sessions per week for optimal recovery.");
+      if (avgRecentPain >= 6) recs.push("Consult your physiotherapist regarding persistent or elevated pain levels.");
+      if (avgCogTime > 5000 && cogSessions.length > 0) recs.push("Continue cognitive training exercises to improve response time.");
+      if (avgAccuracy < 70 && totalSessions > 0) recs.push("Focus on exercise form and accuracy — consider reducing rep targets temporarily.");
+      if (painTrend === "Improving") recs.push("Pain is trending downward — maintain current rehabilitation routine.");
+      if (recoveryScore >= 80) recs.push("Excellent progress — discuss advancing to next treatment phase with your physician.");
+      if (recs.length === 0) recs.push("Continue following your current rehabilitation plan and monitor progress weekly.");
+
+      // ═══════════════════════════════════════
+      //  PAGE 1 — Cover + Clinical Overview
+      // ═══════════════════════════════════════
+      doc.setFillColor(...white);
+      doc.rect(0, 0, w, pageH, "F");
+
+      // Header bar
+      doc.setFillColor(...navy);
+      doc.rect(0, 0, w, 14, "F");
+      doc.setTextColor(...white);
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bold");
+      doc.text("NEUROPHYSIO AI", margin, 9);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.text("Rehabilitation Recovery Report", w - margin, 9, { align: "right" });
+
+      // Title
+      doc.setTextColor(...navy);
+      doc.setFontSize(26);
+      doc.setFont("helvetica", "bold");
+      doc.text("Recovery Report", margin, 34);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(11);
+      doc.setTextColor(...greyLabel);
+      doc.text("Comprehensive Rehabilitation Assessment", margin, 42);
+
+      doc.setDrawColor(...navy);
+      doc.setLineWidth(0.6);
+      doc.line(margin, 47, w - margin, 47);
+
+      // Patient Info (2 columns)
+      let y = 58;
+      const fieldPair = (l1: string, v1: string, l2: string, v2: string) => {
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(...greyLabel);
+        doc.setFontSize(8);
+        doc.text(l1.toUpperCase(), margin, y);
+        doc.text(l2.toUpperCase(), w / 2 + 5, y);
+        doc.setTextColor(...darkText);
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "bold");
+        doc.text(v1, margin, y + 6);
+        doc.text(v2, w / 2 + 5, y + 6);
+        doc.setFont("helvetica", "normal");
+        y += 14;
+      };
+      fieldPair("Patient Name", user?.name || "—", "Age", String(user?.age || "—"));
+      fieldPair("Injury Type", user?.injuryType || "—", "Surgery Date", user?.surgeryDate || "N/A");
+      fieldPair("Treatment Phase", user?.treatmentPhase || "Active Rehabilitation", "Report Period", `Last ${reportDays} days`);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(...greyLabel); doc.setFontSize(8);
+      doc.text("GENERATED ON", margin, y);
+      doc.setTextColor(...darkText); doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.text(new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }), margin, y + 6);
+      doc.setFont("helvetica", "normal");
+      y += 18;
+
+      // ── Recovery Score ──
+      doc.setDrawColor(...lightGrey); doc.setLineWidth(0.3);
+      doc.line(margin, y, w - margin, y);
+      y += 10;
+
+      doc.setFillColor(245, 247, 250);
+      doc.roundedRect(margin, y, contentW, 32, 3, 3, "F");
+
+      doc.setTextColor(...greyLabel); doc.setFontSize(9);
+      doc.text("RECOVERY SCORE", margin + 10, y + 10);
+      doc.setTextColor(...(recoveryColor as unknown as [number, number, number]));
+      doc.setFontSize(28);
+      doc.setFont("helvetica", "bold");
+      doc.text(`${recoveryScore}`, margin + 10, y + 26);
+      doc.setFontSize(12);
+      doc.text(`/ 100`, margin + 10 + doc.getTextWidth(`${recoveryScore}`) + 3, y + 26);
+
+      doc.setTextColor(...(recoveryColor as unknown as [number, number, number]));
       doc.setFontSize(14);
-      doc.setTextColor(160, 160, 160);
-      doc.text("Comprehensive Rehabilitation Recovery Report", 20, 58);
+      doc.text(recoveryLabel, w - margin - 10, y + 20, { align: "right" });
+      doc.setFont("helvetica", "normal");
+      y += 40;
 
-      doc.setDrawColor(40, 40, 40);
-      doc.line(20, 68, w - 20, 68);
-
-      let y = 85;
-      const field = (label: string, value: string) => {
-        doc.setTextColor(120, 120, 120); doc.setFontSize(9);
-        doc.text(label.toUpperCase(), 20, y);
-        doc.setTextColor(240, 240, 240); doc.setFontSize(13);
-        doc.text(value, 20, y + 7);
-        y += 18;
-      };
-      field("Patient Name", user?.name || "—");
-      field("Age", String(user?.age || "—"));
-      field("Injury Type", user?.injuryType || "—");
-      field("Surgery Date", user?.surgeryDate || "N/A");
-      field("Treatment Phase", user?.treatmentPhase || "Active Rehabilitation");
-      field("Report Period", `Last ${reportDays} days`);
-      field("Generated On", new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }));
-
-      // Page 2 — Exercise Summary
-      doc.addPage();
-      doc.setFillColor(13, 17, 23); doc.rect(0, 0, w, 297, "F");
-      doc.setFillColor(34, 197, 94); doc.rect(0, 0, w, 4, "F");
-      doc.setTextColor(34, 197, 94); doc.setFontSize(20);
-      doc.text("Exercise Performance Summary", 20, 25);
-
-      y = 45;
-      let statLine = (label: string, value: string) => {
-        doc.setTextColor(160, 160, 160); doc.setFontSize(10);
-        doc.text(label, 20, y);
-        doc.setTextColor(255, 255, 255); doc.setFontSize(10);
-        doc.text(value, w - 20, y, { align: "right" });
-        doc.setDrawColor(30, 30, 30); doc.line(20, y + 3, w - 20, y + 3);
-        y += 10;
-      };
-      statLine("Total Sessions Completed", String(totalSessions));
-      statLine("Total Repetitions", String(totalReps));
-      statLine("Total Exercise Duration", `${Math.floor(totalDuration / 60)} min ${totalDuration % 60} sec`);
-      statLine("Exercises Completed Above Target", `${sessions.filter(s => (s.reps || 0) >= (s.targetReps || 10)).length}/${totalSessions}`);
-
-      y += 10;
-      doc.setTextColor(34, 197, 94); doc.setFontSize(14);
-      doc.text("Session History", 20, y); y += 10;
-      doc.setTextColor(100, 100, 100); doc.setFontSize(8);
-      doc.text("DATE", 20, y); doc.text("EXERCISE", 55, y); doc.text("REPS", 130, y); doc.text("STATUS", 155, y); doc.text("DURATION", 180, y);
-      y += 4; doc.setDrawColor(40, 40, 40); doc.line(20, y, w - 20, y); y += 5;
-
-      doc.setTextColor(200, 200, 200); doc.setFontSize(9);
-      sessions.slice(0, 20).forEach((s) => {
-        if (y > 270) { doc.addPage(); doc.setFillColor(13, 17, 23); doc.rect(0, 0, w, 297, "F"); doc.setFillColor(34, 197, 94); doc.rect(0, 0, w, 4, "F"); y = 25; }
-        const date = s.timestamp?.split("T")[0] || "—";
-        const status = (s.reps || 0) >= (s.targetReps || 10) ? "Completed" : "Partial";
-        const dur = `${Math.floor((s.duration || 0) / 60)}:${String((s.duration || 0) % 60).padStart(2, "0")}`;
-        doc.text(date, 20, y); doc.text(s.exerciseLabel || "—", 55, y); doc.text(`${s.reps}/${s.targetReps}`, 130, y);
-        doc.setTextColor(status === "Completed" ? 34 : 245, status === "Completed" ? 197 : 158, status === "Completed" ? 94 : 11);
-        doc.text(status, 155, y);
-        doc.setTextColor(200, 200, 200);
-        doc.text(dur, 180, y); y += 7;
+      // ── Clinical Summary ──
+      y = sectionTitle("Clinical Summary", y);
+      doc.setTextColor(...darkText); doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      const clinicalLines = [
+        `Patient demonstrates ${adherenceDesc} adherence to the prescribed rehabilitation program with ${totalSessions} sessions completed over the reporting period (adherence rate: ${adherenceRate}%).`,
+        `Pain trend is ${painDesc}, with an average recent intensity of ${Math.round(avgRecentPain * 10) / 10}/10.${avgRecentPain >= 7 ? " Elevated pain levels warrant clinical attention." : ""}`,
+        cogSessions.length > 0
+          ? `Cognitive performance is ${cogDesc}, with an average accuracy of ${avgCogAccuracy}% and mean response time of ${(avgCogTime / 1000).toFixed(1)}s. Highest level achieved: ${maxCogLevel}.`
+          : "No cognitive training sessions recorded during this period.",
+      ];
+      clinicalLines.forEach((line) => {
+        const wrapped = doc.splitTextToSize(line, contentW);
+        doc.text(wrapped, margin, y);
+        y += wrapped.length * 5 + 4;
       });
+      y += 4;
 
-      // Page 3 — Pain & Cognitive
-      doc.addPage();
-      doc.setFillColor(13, 17, 23); doc.rect(0, 0, w, 297, "F");
-      doc.setFillColor(34, 197, 94); doc.rect(0, 0, w, 4, "F");
-      doc.setTextColor(34, 197, 94); doc.setFontSize(20);
-      doc.text("Pain & Cognitive Assessment", 20, 25);
-
-      y = 45;
-      doc.setTextColor(34, 197, 94); doc.setFontSize(14);
-      doc.text("Pain Summary", 20, y); y += 10;
-      statLine = (label: string, value: string) => {
-        doc.setTextColor(160, 160, 160); doc.setFontSize(10);
-        doc.text(label, 20, y);
-        doc.setTextColor(255, 255, 255); doc.setFontSize(10);
-        doc.text(value, w - 20, y, { align: "right" });
-        doc.setDrawColor(30, 30, 30); doc.line(20, y + 3, w - 20, y + 3);
-        y += 10;
-      };
-      statLine("Total Pain Entries", String(painLogs.length));
-      statLine("Pain Trend", painTrend);
-      statLine("Average Recent Pain", `${Math.round(avgRecent * 10) / 10}/10`);
-
-      Object.entries(regionMap).forEach(([region, vals]) => {
-        const avg = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length * 10) / 10;
-        statLine(`Pain — ${region}`, `${avg}/10 (${vals.length} entries)`);
-      });
-
-      y += 10;
-      doc.setTextColor(34, 197, 94); doc.setFontSize(14);
-      doc.text("Cognitive Performance", 20, y); y += 10;
-      statLine("Total Cognitive Sessions", String(cogSessions.length));
-      statLine("Average Accuracy", `${avgCogAccuracy}%`);
-      statLine("Average Response Time", `${avgCogTime}ms`);
-      statLine("Highest Level Reached", String(maxCogLevel));
-
-      // Page 4 — AI Analysis
-      doc.addPage();
-      doc.setFillColor(13, 17, 23); doc.rect(0, 0, w, 297, "F");
-      doc.setFillColor(34, 197, 94); doc.rect(0, 0, w, 4, "F");
-      doc.setTextColor(34, 197, 94); doc.setFontSize(20);
-      doc.text("AI Clinical Analysis", 20, 25);
-      doc.setTextColor(80, 80, 80); doc.setFontSize(8);
-      doc.text("Powered by Groq LLaMA 3.1", 20, 33);
-
-      if (aiAnalysis) {
-        doc.setTextColor(210, 210, 210); doc.setFontSize(10);
-        const lines = doc.splitTextToSize(aiAnalysis, w - 40);
-        doc.text(lines, 20, 45);
+      // ── Risk Flags ──
+      if (riskFlags.length > 0) {
+        y = sectionTitle("Risk Flags", y);
+        riskFlags.forEach((flag) => {
+          doc.setFillColor(255, 245, 245);
+          doc.roundedRect(margin, y - 4, contentW, 9, 2, 2, "F");
+          doc.setTextColor(...red);
+          doc.setFontSize(9);
+          doc.setFont("helvetica", "bold");
+          doc.text("!", margin + 4, y + 2);
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(...darkText);
+          doc.text(flag, margin + 12, y + 2);
+          y += 12;
+        });
+        y += 4;
       }
 
-      // Disclaimer
-      const lastPage = doc.internal.pages.length - 1;
-      doc.setPage(lastPage);
-      doc.setDrawColor(40, 40, 40); doc.line(20, 260, w - 20, 260);
-      doc.setTextColor(80, 80, 80); doc.setFontSize(7);
-      doc.text("DISCLAIMER: This report is generated by artificial intelligence and is intended for informational purposes only.", 20, 268);
-      doc.text("It should NOT replace professional medical evaluation, diagnosis, or treatment recommendations.", 20, 273);
-      doc.text(`NeuroPhysio AI — Powered by Groq & MoveNet  |  Report ID: ${Date.now().toString(36).toUpperCase()}`, 20, 280);
+      // ═══════════════════════════════════════
+      //  PAGE 2 — Exercise & Pain & Cognitive
+      // ═══════════════════════════════════════
+      newPage();
+      y = 18;
+      y = sectionTitle("Exercise Performance", y);
+      y = statRow("Total Sessions Completed", String(totalSessions), y);
+      y = statRow("Total Repetitions", String(totalReps), y);
+      y = statRow("Total Exercise Duration", `${Math.floor(totalDuration / 60)} min ${totalDuration % 60} sec`, y);
+      y = statRow("Target Completion Rate", `${sessions.filter(s => (s.reps || 0) >= (s.targetReps || 10)).length}/${totalSessions}`, y);
+
+      // Adherence rate
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(...greyLabel); doc.setFontSize(10);
+      doc.text("Adherence Rate", margin, y);
+      doc.setTextColor(...(adherenceColor as unknown as [number, number, number]));
+      doc.setFont("helvetica", "bold"); doc.setFontSize(10);
+      doc.text(`${adherenceRate}% — ${adherenceLabel}`, w - margin, y, { align: "right" });
+      doc.setFont("helvetica", "normal");
+      doc.setDrawColor(230, 230, 230); doc.setLineWidth(0.2);
+      doc.line(margin, y + 3, w - margin, y + 3);
+      y += 16;
+
+      // Pain section
+      y = sectionTitle("Pain Assessment", y);
+      y = statRow("Total Pain Entries", String(painLogs.length), y);
+      y = statRow("Pain Trend", painTrend, y);
+      y = statRow("Average Recent Pain", `${Math.round(avgRecent * 10) / 10}/10`, y);
+      Object.entries(regionMap).forEach(([region, vals]) => {
+        const avg = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length * 10) / 10;
+        y = statRow(`${region}`, `${avg}/10 (${vals.length} entries)`, y);
+      });
+      y += 8;
+
+      // Cognitive section
+      y = sectionTitle("Cognitive Performance", y);
+      y = statRow("Total Sessions", String(cogSessions.length), y);
+      y = statRow("Average Accuracy", `${avgCogAccuracy}%`, y);
+      y = statRow("Average Response Time", `${(avgCogTime / 1000).toFixed(1)}s`, y);
+      y = statRow("Highest Level Reached", String(maxCogLevel), y);
+
+      // ═══════════════════════════════════════
+      //  PAGE 3 — AI Analysis + Recommendations
+      // ═══════════════════════════════════════
+      newPage();
+      y = 18;
+      y = sectionTitle("AI Clinical Interpretation", y);
+
+      doc.setTextColor(...greyLabel); doc.setFontSize(7);
+      doc.text("Powered by Groq LLaMA · AI-generated analysis for informational purposes only", margin, y);
+      y += 8;
+
+      if (aiAnalysis) {
+        doc.setTextColor(...darkText); doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        const aiLines = doc.splitTextToSize(aiAnalysis, contentW);
+        // Paginate AI text
+        for (let i = 0; i < aiLines.length; i++) {
+          if (y > pageH - 40) {
+            newPage();
+            y = 18;
+          }
+          doc.text(aiLines[i], margin, y);
+          y += 5;
+        }
+      } else {
+        doc.setTextColor(...greyLabel); doc.setFontSize(10);
+        doc.text("AI analysis was not available at the time of report generation.", margin, y);
+        y += 10;
+      }
+
+      y += 8;
+      if (y > pageH - 60) { newPage(); y = 18; }
+      y = sectionTitle("Recommendations", y);
+      doc.setTextColor(...darkText); doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      recs.forEach((rec, i) => {
+        if (y > pageH - 20) { newPage(); y = 18; }
+        const bullet = `${i + 1}. ${rec}`;
+        const wrapped = doc.splitTextToSize(bullet, contentW - 5);
+        doc.text(wrapped, margin + 2, y);
+        y += wrapped.length * 5 + 3;
+      });
+
+      // ═══════════════════════════════════════
+      //  LAST PAGE — Session History Tables
+      // ═══════════════════════════════════════
+      newPage();
+      y = 18;
+      y = sectionTitle("Session History", y);
+
+      // Table header
+      doc.setFillColor(240, 242, 245);
+      doc.rect(margin, y - 4, contentW, 8, "F");
+      doc.setTextColor(...greyLabel); doc.setFontSize(7.5);
+      doc.setFont("helvetica", "bold");
+      doc.text("DATE", margin + 2, y);
+      doc.text("EXERCISE", 55, y);
+      doc.text("REPS", 120, y);
+      doc.text("STATUS", 145, y);
+      doc.text("DURATION", 175, y);
+      doc.setFont("helvetica", "normal");
+      y += 7;
+
+      doc.setFontSize(9);
+      sessions.slice(0, 25).forEach((s, idx) => {
+        if (y > pageH - 25) {
+          newPage();
+          y = 18;
+          // Re-draw header
+          doc.setFillColor(240, 242, 245);
+          doc.rect(margin, y - 4, contentW, 8, "F");
+          doc.setTextColor(...greyLabel); doc.setFontSize(7.5);
+          doc.setFont("helvetica", "bold");
+          doc.text("DATE", margin + 2, y); doc.text("EXERCISE", 55, y);
+          doc.text("REPS", 120, y); doc.text("STATUS", 145, y); doc.text("DURATION", 175, y);
+          doc.setFont("helvetica", "normal"); doc.setFontSize(9);
+          y += 7;
+        }
+        // Zebra striping
+        if (idx % 2 === 0) {
+          doc.setFillColor(249, 250, 251);
+          doc.rect(margin, y - 4, contentW, 7, "F");
+        }
+        const date = s.timestamp?.split("T")[0] || "—";
+        const met = (s.reps || 0) >= (s.targetReps || 10);
+        const dur = `${Math.floor((s.duration || 0) / 60)}:${String((s.duration || 0) % 60).padStart(2, "0")}`;
+        doc.setTextColor(...darkText);
+        doc.text(date, margin + 2, y);
+        doc.text((s.exerciseLabel || "—").substring(0, 28), 55, y);
+        doc.text(`${s.reps}/${s.targetReps}`, 120, y);
+        doc.setTextColor(...(met ? green : amber) as unknown as [number, number, number]);
+        doc.setFont("helvetica", "bold");
+        doc.text(met ? "Completed" : "Partial", 145, y);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(...darkText);
+        doc.text(dur, 175, y);
+        y += 7;
+      });
+
+      // ── Disclaimer footer on last page ──
+      const totalPages = doc.internal.pages.length - 1;
+      doc.setPage(totalPages);
+      y = pageH - 30;
+      doc.setDrawColor(...lightGrey); doc.setLineWidth(0.3);
+      doc.line(margin, y, w - margin, y);
+      y += 6;
+      doc.setTextColor(...greyLabel); doc.setFontSize(7);
+      doc.text("DISCLAIMER: This report is generated by artificial intelligence and is intended for informational purposes only.", margin, y);
+      doc.text("It should NOT replace professional medical evaluation, diagnosis, or treatment recommendations.", margin, y + 4);
+      doc.setTextColor(...lightGrey); doc.setFontSize(6.5);
+      doc.text(`NeuroPhysio AI  |  Report ID: ${Date.now().toString(36).toUpperCase()}  |  Generated ${new Date().toISOString().split("T")[0]}`, margin, y + 10);
 
       const blob = doc.output("blob");
       setPdfBlob(blob);
