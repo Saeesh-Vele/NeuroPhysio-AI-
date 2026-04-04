@@ -15,6 +15,7 @@ import ExerciseSession from "./pages/DashboardPage/tabs/ExerciseSession";
 import PainTracker from "./pages/DashboardPage/tabs/PainTracker";
 import CognitiveTrainer from "./pages/DashboardPage/tabs/CognitiveTrainer";
 import Progress from "./pages/DashboardPage/tabs/Progress";
+import AIChat from "./pages/DashboardPage/tabs/AIChat";
 import DoctorReport from "./pages/DashboardPage/tabs/DoctorReport";
 import Settings from "./pages/DashboardPage/tabs/Settings";
 import { ToastContainer } from "./components/Toast/Toast";
@@ -130,6 +131,7 @@ const App: FC = () => {
           <Route path="pain-tracker" element={<PainTracker />} />
           <Route path="cognitive" element={<CognitiveTrainer />} />
           <Route path="progress" element={<Progress />} />
+          <Route path="ai-chat" element={<AIChat />} />
           <Route path="doctor-report" element={<DoctorReport />} />
           <Route path="settings" element={<Settings />} />
         </Route>

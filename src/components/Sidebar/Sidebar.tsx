@@ -10,6 +10,7 @@ import {
   HiCpuChip,
   HiChartBar,
   HiDocumentText,
+  HiChatBubbleLeftRight,
   HiCog6Tooth,
   HiArrowRightOnRectangle,
 } from "react-icons/hi2";
@@ -31,6 +32,7 @@ const navItems: NavItem[] = [
   { to: "/dashboard/pain-tracker", label: "Pain Tracker",      icon: <HiHeart size={18} /> },
   { to: "/dashboard/cognitive",    label: "Cognitive Trainer",  icon: <HiCpuChip size={18} /> },
   { to: "/dashboard/progress",     label: "Progress",          icon: <HiChartBar size={18} /> },
+  { to: "/dashboard/ai-chat",      label: "AI Chat",            icon: <HiChatBubbleLeftRight size={18} /> },
   { to: "/dashboard/doctor-report",label: "Doctor Report",     icon: <HiDocumentText size={18} /> },
   { to: "/dashboard/settings",     label: "Settings",          icon: <HiCog6Tooth size={18} /> },
 ];

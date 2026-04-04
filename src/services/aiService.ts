@@ -199,7 +199,7 @@ Set 2-3 concrete, measurable goals for the coming week (e.g., "Complete 5 exerci
         Authorization: `Bearer ${GROQ_KEY}`,
       },
       body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
+        model: "llama-3.1-8b-instant",
         messages: [{ role: "user", content: prompt }],
         max_tokens: 1200,
         temperature: 0.6,

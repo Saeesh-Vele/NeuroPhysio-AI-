@@ -10,6 +10,19 @@ import {
 import { generateWeeklySummary } from "../../../services/aiService";
 import type { ExerciseSession, PainLog, CognitiveSession } from "../../../types";
 
+const renderMarkdown = (text: string): string => {
+  return text
+    .replace(/^###\s+(.+)$/gm, '<div style="font-size:13px;font-weight:700;color:#22c55e;margin:12px 0 4px;text-transform:uppercase;letter-spacing:0.5px">$1</div>')
+    .replace(/^##\s+(.+)$/gm, '<div style="font-size:14px;font-weight:700;color:#22c55e;margin:14px 0 6px">$1</div>')
+    .replace(/^#\s+(.+)$/gm, '<div style="font-size:15px;font-weight:700;color:#22c55e;margin:16px 0 8px">$1</div>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong style="color:var(--color-white);font-weight:600">$1</strong>')
+    .replace(/(?<![*])\*([^*]+)\*(?![*])/g, '<em>$1</em>')
+    .replace(/^[\-\*]\s+(.+)$/gm, '<div style="display:flex;gap:8px;align-items:baseline;margin:3px 0;padding-left:4px"><span style="color:#22c55e;font-size:8px;margin-top:5px">●</span><span>$1</span></div>')
+    .replace(/^(\d+)\.\s+(.+)$/gm, '<div style="display:flex;gap:8px;align-items:baseline;margin:3px 0;padding-left:4px"><span style="color:#22c55e;font-weight:600;min-width:16px">$1.</span><span>$2</span></div>')
+    .replace(/\n\n/g, '<div style="height:10px"></div>')
+    .replace(/\n/g, '<br/>');
+};
+
 const Progress: FC = () => {
   const [sessions, setSessions] = useState<ExerciseSession[]>([]);
   const [painLogs, setPainLogs] = useState<PainLog[]>([]);
@@ -260,9 +273,10 @@ const Progress: FC = () => {
             <span className="badge-accent">Groq</span>
           </div>
           <div className="widget__body">
-            <p style={{ color: "var(--color-grey-100)", fontSize: 14, lineHeight: 1.7, whiteSpace: "pre-wrap" }}>
-              {aiInsight}
-            </p>
+            <div
+              style={{ color: "var(--color-grey-100)", fontSize: 14, lineHeight: 1.7 }}
+              dangerouslySetInnerHTML={{ __html: renderMarkdown(aiInsight) }}
+            />
           </div>
         </div>
       )}
