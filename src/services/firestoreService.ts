@@ -108,12 +108,13 @@ export async function getUserSessions(
   try {
     const q = query(
       collection(db, "sessions"),
-      where("userId", "==", userId),
-      orderBy("timestamp", "desc"),
-      fbLimit(max)
+      where("userId", "==", userId)
     );
     const snap = await getDocs(q);
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as ExerciseSession));
+    const results = snap.docs.map((d) => ({ id: d.id, ...d.data() } as ExerciseSession));
+    // Sort client-side (avoids needing composite index)
+    results.sort((a, b) => (b.timestamp || "").localeCompare(a.timestamp || ""));
+    return results.slice(0, max);
   } catch (err) {
     console.error("[Firestore] getUserSessions error:", err);
     return [];
@@ -141,12 +142,12 @@ export async function getUserPainLogs(
   try {
     const q = query(
       collection(db, "painLogs"),
-      where("userId", "==", userId),
-      orderBy("timestamp", "desc"),
-      fbLimit(max)
+      where("userId", "==", userId)
     );
     const snap = await getDocs(q);
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as PainLog));
+    const results = snap.docs.map((d) => ({ id: d.id, ...d.data() } as PainLog));
+    results.sort((a, b) => (b.timestamp || "").localeCompare(a.timestamp || ""));
+    return results.slice(0, max);
   } catch (err) {
     console.error("[Firestore] getUserPainLogs error:", err);
     return [];
@@ -176,12 +177,12 @@ export async function getUserCognitiveSessions(
   try {
     const q = query(
       collection(db, "cognitiveSessions"),
-      where("userId", "==", userId),
-      orderBy("timestamp", "desc"),
-      fbLimit(max)
+      where("userId", "==", userId)
     );
     const snap = await getDocs(q);
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as CognitiveSession));
+    const results = snap.docs.map((d) => ({ id: d.id, ...d.data() } as CognitiveSession));
+    results.sort((a, b) => (b.timestamp || "").localeCompare(a.timestamp || ""));
+    return results.slice(0, max);
   } catch (err) {
     console.error("[Firestore] getUserCognitiveSessions error:", err);
     return [];
@@ -210,14 +211,14 @@ export async function getLatestExercisePlan(
   try {
     const q = query(
       collection(db, "exercisePlans"),
-      where("userId", "==", userId),
-      orderBy("generatedAt", "desc"),
-      fbLimit(1)
+      where("userId", "==", userId)
     );
     const snap = await getDocs(q);
     if (snap.empty) return null;
-    const d = snap.docs[0];
-    return { id: d.id, ...d.data() } as ExercisePlan;
+    // Sort client-side to avoid composite index requirement
+    const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() } as ExercisePlan));
+    docs.sort((a, b) => (b.generatedAt || "").localeCompare(a.generatedAt || ""));
+    return docs[0];
   } catch (err) {
     console.error("[Firestore] getLatestExercisePlan error:", err);
     return null;

@@ -1516,6 +1516,147 @@ EXERCISES: List[Dict[str, Any]] = [
         "contraindications": ["shoulder_dislocation_recent"],
         "instructions": ["Stand in a doorway with arms on frame", "Lean forward through the doorway", "Hold stretch for 15-30 seconds"]
     },
+    # ── Gentle Shoulder Exercises (for dislocation/early recovery) ──
+    {
+        "id": "shoulder_isometric_hold",
+        "label": "Shoulder Isometric Hold",
+        "description": "Gentle static hold to build shoulder stability without movement",
+        "category": "shoulder",
+        "targetMuscles": ["deltoid", "rotator_cuff", "supraspinatus"],
+        "difficulty": "beginner",
+        "targetReps": 8,
+        "angleChecks": [
+            {
+                "name": "shoulder_angle",
+                "points": ["left_hip", "left_shoulder", "left_elbow"],
+                "targetMin": 25,
+                "targetMax": 45,
+                "feedbackLow": "Raise arm slightly against resistance",
+                "feedbackHigh": "Don't raise too high, keep it gentle",
+                "feedbackGood": "Perfect isometric hold position"
+            }
+        ],
+        "repLogic": {"primaryAngle": "shoulder_angle", "downThreshold": 15, "upThreshold": 30, "minHoldMs": 3000},
+        "contraindications": ["acute_shoulder_injury"],
+        "instructions": [
+            "Stand with arm at your side",
+            "Push arm gently outward against a wall or doorframe",
+            "Hold for 5 seconds without moving the arm",
+            "Release and repeat — focus on engaging, not lifting"
+        ]
+    },
+    {
+        "id": "towel_slide",
+        "label": "Towel Slide (Assisted Raise)",
+        "description": "Use a towel for gentle assisted shoulder elevation — great for post-dislocation",
+        "category": "shoulder",
+        "targetMuscles": ["anterior_deltoid", "supraspinatus"],
+        "difficulty": "beginner",
+        "targetReps": 8,
+        "angleChecks": [
+            {
+                "name": "shoulder_angle",
+                "points": ["left_hip", "left_shoulder", "left_elbow"],
+                "targetMin": 60,
+                "targetMax": 90,
+                "feedbackLow": "Slide the towel a bit higher",
+                "feedbackHigh": "Don't go above shoulder height",
+                "feedbackGood": "Perfect assisted raise"
+            }
+        ],
+        "repLogic": {"primaryAngle": "shoulder_angle", "downThreshold": 30, "upThreshold": 65, "minHoldMs": 500},
+        "contraindications": ["acute_shoulder_injury"],
+        "instructions": [
+            "Hold a towel with both hands on a table",
+            "Slowly slide the towel forward to raise the injured arm",
+            "Go only as far as comfortable — stop at shoulder height",
+            "Slowly slide back to starting position"
+        ]
+    },
+    {
+        "id": "cross_body_stretch",
+        "label": "Cross-Body Shoulder Stretch",
+        "description": "Gentle cross-body stretch for posterior shoulder flexibility",
+        "category": "shoulder",
+        "targetMuscles": ["posterior_deltoid", "infraspinatus", "teres_minor"],
+        "difficulty": "beginner",
+        "targetReps": 6,
+        "angleChecks": [
+            {
+                "name": "shoulder_angle",
+                "points": ["left_hip", "left_shoulder", "left_elbow"],
+                "targetMin": 70,
+                "targetMax": 95,
+                "feedbackLow": "Bring arm further across your body",
+                "feedbackHigh": "Don't force it — keep it gentle",
+                "feedbackGood": "Good stretch position"
+            }
+        ],
+        "repLogic": {"primaryAngle": "shoulder_angle", "downThreshold": 30, "upThreshold": 75, "minHoldMs": 5000},
+        "contraindications": ["acute_shoulder_injury", "labrum_tear_acute"],
+        "instructions": [
+            "Bring injured arm across your chest",
+            "Use your other hand to gently pull at the elbow",
+            "Hold the stretch for 15-20 seconds",
+            "Release slowly — never bounce or force the stretch"
+        ]
+    },
+    {
+        "id": "finger_wall_walk",
+        "label": "Finger Wall Walk",
+        "description": "Walk fingers up a wall to gradually increase shoulder range of motion",
+        "category": "shoulder",
+        "targetMuscles": ["anterior_deltoid", "supraspinatus", "upper_trapezius"],
+        "difficulty": "beginner",
+        "targetReps": 6,
+        "angleChecks": [
+            {
+                "name": "shoulder_angle",
+                "points": ["left_hip", "left_shoulder", "left_elbow"],
+                "targetMin": 90,
+                "targetMax": 140,
+                "feedbackLow": "Walk fingers a bit higher",
+                "feedbackHigh": "Don't push past your comfort zone",
+                "feedbackGood": "Great height — nice progress"
+            }
+        ],
+        "repLogic": {"primaryAngle": "shoulder_angle", "downThreshold": 40, "upThreshold": 100, "minHoldMs": 1000},
+        "contraindications": ["acute_shoulder_injury"],
+        "instructions": [
+            "Stand facing a wall, arm's length away",
+            "Place fingertips on the wall at waist level",
+            "Slowly walk your fingers up the wall",
+            "Stop when you feel a gentle stretch, then walk back down"
+        ]
+    },
+    {
+        "id": "passive_external_rotation",
+        "label": "Passive External Rotation",
+        "description": "Gentle external rotation using a stick or towel for assistance",
+        "category": "shoulder",
+        "targetMuscles": ["infraspinatus", "teres_minor", "posterior_deltoid"],
+        "difficulty": "beginner",
+        "targetReps": 8,
+        "angleChecks": [
+            {
+                "name": "elbow_angle",
+                "points": ["left_shoulder", "left_elbow", "left_wrist"],
+                "targetMin": 80,
+                "targetMax": 100,
+                "feedbackLow": "Keep elbow bent at 90 degrees",
+                "feedbackHigh": "Don't straighten elbow",
+                "feedbackGood": "Good arm position"
+            }
+        ],
+        "repLogic": {"primaryAngle": "elbow_angle", "downThreshold": 75, "upThreshold": 95, "minHoldMs": 2000},
+        "contraindications": ["acute_shoulder_dislocation"],
+        "instructions": [
+            "Hold a stick or towel with both hands",
+            "Keep elbow of injured arm bent at 90° and tucked to your side",
+            "Use the other hand to gently push the injured arm outward",
+            "Hold for 5 seconds, then slowly return — don't force it"
+        ]
+    },
     {
         "id": "prone_press_up",
         "label": "Prone Press-Up",
@@ -1631,7 +1772,417 @@ EXERCISES: List[Dict[str, Any]] = [
         "contraindications": ["hip_replacement_week1"],
         "instructions": ["Lie on back", "Cross one ankle over opposite knee", "Pull bottom knee toward chest", "Hold for 20-30 seconds"]
     },
+    # ═══════════════════════════════════════════
+    #  GENTLE RECOVERY (all body regions)
+    # ═══════════════════════════════════════════
+
+    # ── Ankle Gentle ──
+    {
+        "id": "ankle_alphabet",
+        "label": "Ankle Alphabet Trace",
+        "description": "Trace the alphabet in the air using your foot for gentle ankle mobility",
+        "category": "knee",
+        "targetMuscles": ["tibialis_anterior", "peroneus", "calf"],
+        "difficulty": "beginner",
+        "targetReps": 6,
+        "angleChecks": [
+            {
+                "name": "knee_angle",
+                "points": ["left_hip", "left_knee", "left_ankle"],
+                "targetMin": 160,
+                "targetMax": 180,
+                "feedbackLow": "Keep leg extended while tracing",
+                "feedbackHigh": "Good, keep going",
+                "feedbackGood": "Nice ankle movement"
+            }
+        ],
+        "repLogic": {"primaryAngle": "knee_angle", "downThreshold": 140, "upThreshold": 165, "minHoldMs": 500},
+        "contraindications": ["acute_ankle_fracture"],
+        "instructions": [
+            "Sit with leg extended off the edge of a bed or chair",
+            "Use your big toe like a pen",
+            "Trace the letters A-B-C-D-E-F in the air",
+            "Each full set of 6 letters = 1 rep"
+        ]
+    },
+    {
+        "id": "ankle_dorsiflexion",
+        "label": "Ankle Dorsiflexion (Towel)",
+        "description": "Pull toes toward shin with a towel for gentle dorsiflexion stretch",
+        "category": "knee",
+        "targetMuscles": ["tibialis_anterior", "calf"],
+        "difficulty": "beginner",
+        "targetReps": 8,
+        "angleChecks": [
+            {
+                "name": "knee_angle",
+                "points": ["left_hip", "left_knee", "left_ankle"],
+                "targetMin": 160,
+                "targetMax": 180,
+                "feedbackLow": "Keep leg straight",
+                "feedbackHigh": "Good",
+                "feedbackGood": "Great stretch"
+            }
+        ],
+        "repLogic": {"primaryAngle": "knee_angle", "downThreshold": 140, "upThreshold": 165, "minHoldMs": 3000},
+        "contraindications": ["achilles_tendon_rupture"],
+        "instructions": [
+            "Sit with leg straight out in front of you",
+            "Wrap a towel around the ball of your foot",
+            "Gently pull the towel toward you until you feel a calf stretch",
+            "Hold for 5 seconds then release"
+        ]
+    },
+    {
+        "id": "toe_raises",
+        "label": "Seated Toe Raises",
+        "description": "Raise toes off the floor while keeping heels down for gentle ankle strengthening",
+        "category": "knee",
+        "targetMuscles": ["tibialis_anterior", "ankle_stabilizers"],
+        "difficulty": "beginner",
+        "targetReps": 12,
+        "angleChecks": [
+            {
+                "name": "knee_angle",
+                "points": ["left_hip", "left_knee", "left_ankle"],
+                "targetMin": 80,
+                "targetMax": 100,
+                "feedbackLow": "Sit upright with feet flat",
+                "feedbackHigh": "Good",
+                "feedbackGood": "Good seated position"
+            }
+        ],
+        "repLogic": {"primaryAngle": "knee_angle", "downThreshold": 75, "upThreshold": 95, "minHoldMs": 500},
+        "contraindications": [],
+        "instructions": [
+            "Sit in a chair with feet flat on the floor",
+            "Keep heels on the ground",
+            "Lift your toes as high as you can",
+            "Hold for 2 seconds then lower — very gentle"
+        ]
+    },
+
+    # ── Knee Gentle ──
+    {
+        "id": "patella_glide",
+        "label": "Patella Mobilization",
+        "description": "Gently glide the kneecap to reduce stiffness after surgery",
+        "category": "knee",
+        "targetMuscles": ["quadriceps", "patellar_tendon"],
+        "difficulty": "beginner",
+        "targetReps": 8,
+        "angleChecks": [
+            {
+                "name": "knee_angle",
+                "points": ["left_hip", "left_knee", "left_ankle"],
+                "targetMin": 160,
+                "targetMax": 180,
+                "feedbackLow": "Keep leg straight and relaxed",
+                "feedbackHigh": "Good",
+                "feedbackGood": "Good position for patella work"
+            }
+        ],
+        "repLogic": {"primaryAngle": "knee_angle", "downThreshold": 140, "upThreshold": 165, "minHoldMs": 2000},
+        "contraindications": ["acute_knee_injury"],
+        "instructions": [
+            "Sit with injured leg straight",
+            "Relax the quadriceps completely",
+            "Gently push your kneecap up, down, left, and right",
+            "Each cycle of 4 directions = 1 rep"
+        ]
+    },
+    {
+        "id": "hamstring_wall_stretch",
+        "label": "Hamstring Wall Stretch",
+        "description": "Gentle hamstring stretch using a wall for support",
+        "category": "knee",
+        "targetMuscles": ["hamstrings", "calf"],
+        "difficulty": "beginner",
+        "targetReps": 6,
+        "angleChecks": [
+            {
+                "name": "hip_angle",
+                "points": ["left_shoulder", "left_hip", "left_knee"],
+                "targetMin": 70,
+                "targetMax": 100,
+                "feedbackLow": "Move closer to the wall",
+                "feedbackHigh": "Don't overstretch",
+                "feedbackGood": "Good hamstring stretch"
+            }
+        ],
+        "repLogic": {"primaryAngle": "hip_angle", "downThreshold": 120, "upThreshold": 85, "minHoldMs": 5000},
+        "contraindications": [],
+        "instructions": [
+            "Lie on your back near a doorway",
+            "Place injured leg up against the wall",
+            "Scoot closer until you feel a stretch behind the knee",
+            "Hold for 20 seconds — never bounce"
+        ]
+    },
+
+    # ── Hip Gentle ──
+    {
+        "id": "gentle_hip_circles",
+        "label": "Gentle Hip Circles",
+        "description": "Small circles with the leg to improve hip joint lubrication",
+        "category": "hip",
+        "targetMuscles": ["hip_flexors", "hip_abductors", "glutes"],
+        "difficulty": "beginner",
+        "targetReps": 8,
+        "angleChecks": [
+            {
+                "name": "hip_angle",
+                "points": ["left_shoulder", "left_hip", "left_knee"],
+                "targetMin": 80,
+                "targetMax": 110,
+                "feedbackLow": "Lift knee a bit higher",
+                "feedbackHigh": "Keep circles small and controlled",
+                "feedbackGood": "Nice controlled circles"
+            }
+        ],
+        "repLogic": {"primaryAngle": "hip_angle", "downThreshold": 120, "upThreshold": 90, "minHoldMs": 500},
+        "contraindications": ["hip_replacement_week1"],
+        "instructions": [
+            "Stand holding a chair for balance",
+            "Lift one knee to waist height",
+            "Make small clockwise circles (4 circles)",
+            "Then reverse direction (4 circles) = 1 rep"
+        ]
+    },
+    {
+        "id": "supine_hip_flexion",
+        "label": "Supine Hip Flexion",
+        "description": "Lying hip flexion for gentle range of motion recovery",
+        "category": "hip",
+        "targetMuscles": ["hip_flexors", "psoas"],
+        "difficulty": "beginner",
+        "targetReps": 8,
+        "angleChecks": [
+            {
+                "name": "hip_angle",
+                "points": ["left_shoulder", "left_hip", "left_knee"],
+                "targetMin": 70,
+                "targetMax": 100,
+                "feedbackLow": "Bring knee a little closer to chest",
+                "feedbackHigh": "Don't force it past comfortable range",
+                "feedbackGood": "Good hip flexion"
+            }
+        ],
+        "repLogic": {"primaryAngle": "hip_angle", "downThreshold": 140, "upThreshold": 90, "minHoldMs": 1000},
+        "contraindications": ["hip_replacement_week1", "acute_hip_injury"],
+        "instructions": [
+            "Lie flat on your back",
+            "Slowly slide one heel toward your buttock, bending the knee",
+            "Keep sliding until you feel a gentle hip stretch",
+            "Slowly straighten the leg back out"
+        ]
+    },
+
+    # ── Wrist Gentle ──
+    {
+        "id": "wrist_circles",
+        "label": "Wrist Circles",
+        "description": "Gentle wrist rotations for flexibility and pain relief",
+        "category": "general",
+        "targetMuscles": ["wrist_flexors", "wrist_extensors"],
+        "difficulty": "beginner",
+        "targetReps": 10,
+        "angleChecks": [
+            {
+                "name": "elbow_angle",
+                "points": ["left_shoulder", "left_elbow", "left_wrist"],
+                "targetMin": 80,
+                "targetMax": 100,
+                "feedbackLow": "Bend elbow to 90 degrees",
+                "feedbackHigh": "Good",
+                "feedbackGood": "Good wrist circle position"
+            }
+        ],
+        "repLogic": {"primaryAngle": "elbow_angle", "downThreshold": 75, "upThreshold": 95, "minHoldMs": 500},
+        "contraindications": ["wrist_fracture_acute"],
+        "instructions": [
+            "Hold forearm still with elbow bent at 90°",
+            "Slowly rotate your wrist clockwise 5 times",
+            "Then counterclockwise 5 times",
+            "Keep movements slow and controlled"
+        ]
+    },
+    {
+        "id": "wrist_flex_extend",
+        "label": "Wrist Flexion/Extension",
+        "description": "Bend wrist up and down for ROM and tendon flexibility",
+        "category": "general",
+        "targetMuscles": ["wrist_flexors", "wrist_extensors", "forearm"],
+        "difficulty": "beginner",
+        "targetReps": 10,
+        "angleChecks": [
+            {
+                "name": "elbow_angle",
+                "points": ["left_shoulder", "left_elbow", "left_wrist"],
+                "targetMin": 80,
+                "targetMax": 100,
+                "feedbackLow": "Keep elbow bent",
+                "feedbackHigh": "Good",
+                "feedbackGood": "Good position"
+            }
+        ],
+        "repLogic": {"primaryAngle": "elbow_angle", "downThreshold": 75, "upThreshold": 95, "minHoldMs": 500},
+        "contraindications": ["carpal_tunnel_acute", "wrist_fracture_acute"],
+        "instructions": [
+            "Rest your forearm on a table with hand hanging off the edge",
+            "Slowly bend wrist downward as far as comfortable",
+            "Then slowly bend wrist upward",
+            "One down-and-up cycle = 1 rep"
+        ]
+    },
+    {
+        "id": "prayer_stretch",
+        "label": "Prayer Stretch",
+        "description": "Press palms together to stretch wrist flexors and extensors",
+        "category": "general",
+        "targetMuscles": ["wrist_flexors", "wrist_extensors", "forearm"],
+        "difficulty": "beginner",
+        "targetReps": 6,
+        "angleChecks": [
+            {
+                "name": "elbow_angle",
+                "points": ["left_shoulder", "left_elbow", "left_wrist"],
+                "targetMin": 80,
+                "targetMax": 110,
+                "feedbackLow": "Bring hands up to chest height",
+                "feedbackHigh": "Don't force the stretch",
+                "feedbackGood": "Good stretch position"
+            }
+        ],
+        "repLogic": {"primaryAngle": "elbow_angle", "downThreshold": 75, "upThreshold": 95, "minHoldMs": 5000},
+        "contraindications": ["wrist_fracture_acute"],
+        "instructions": [
+            "Press palms together in front of your chest (prayer position)",
+            "Slowly lower your hands while keeping palms pressed together",
+            "Hold for 15-20 seconds when you feel the stretch",
+            "Release and repeat"
+        ]
+    },
+
+    # ── Back / Spine Gentle ──
+    {
+        "id": "cat_cow_stretch",
+        "label": "Cat-Cow Stretch",
+        "description": "Alternating spinal flexion and extension for lower back relief",
+        "category": "general",
+        "targetMuscles": ["erector_spinae", "abdominals", "hip_flexors"],
+        "difficulty": "beginner",
+        "targetReps": 8,
+        "angleChecks": [
+            {
+                "name": "hip_angle",
+                "points": ["left_shoulder", "left_hip", "left_knee"],
+                "targetMin": 80,
+                "targetMax": 100,
+                "feedbackLow": "Arch your back more (cow)",
+                "feedbackHigh": "Round your back more (cat)",
+                "feedbackGood": "Good spinal movement"
+            }
+        ],
+        "repLogic": {"primaryAngle": "hip_angle", "downThreshold": 95, "upThreshold": 160, "minHoldMs": 1000},
+        "contraindications": ["spinal_fusion"],
+        "instructions": [
+            "Get on hands and knees (tabletop position)",
+            "Inhale: arch back, lift head (cow pose)",
+            "Exhale: round back, tuck chin (cat pose)",
+            "Move slowly between the two positions"
+        ]
+    },
+    {
+        "id": "pelvic_tilt",
+        "label": "Pelvic Tilt",
+        "description": "Flatten lower back against the floor to engage core and relieve back pain",
+        "category": "general",
+        "targetMuscles": ["abdominals", "lower_back", "glutes"],
+        "difficulty": "beginner",
+        "targetReps": 10,
+        "angleChecks": [
+            {
+                "name": "hip_angle",
+                "points": ["left_shoulder", "left_hip", "left_knee"],
+                "targetMin": 120,
+                "targetMax": 150,
+                "feedbackLow": "Bend knees more",
+                "feedbackHigh": "Good",
+                "feedbackGood": "Perfect position for pelvic tilts"
+            }
+        ],
+        "repLogic": {"primaryAngle": "hip_angle", "downThreshold": 130, "upThreshold": 155, "minHoldMs": 1000},
+        "contraindications": [],
+        "instructions": [
+            "Lie on your back with knees bent, feet flat",
+            "Tighten abs and press lower back flat into the floor",
+            "Hold for 5 seconds",
+            "Release and repeat — very gentle core activation"
+        ]
+    },
+    {
+        "id": "dead_bug",
+        "label": "Dead Bug",
+        "description": "Controlled core stabilization exercise great for back pain rehab",
+        "category": "general",
+        "targetMuscles": ["transverse_abdominis", "rectus_abdominis", "hip_flexors"],
+        "difficulty": "beginner",
+        "targetReps": 8,
+        "angleChecks": [
+            {
+                "name": "hip_angle",
+                "points": ["left_shoulder", "left_hip", "left_knee"],
+                "targetMin": 80,
+                "targetMax": 110,
+                "feedbackLow": "Bring knees above hips",
+                "feedbackHigh": "Keep lower back pressed to floor",
+                "feedbackGood": "Good dead bug form"
+            }
+        ],
+        "repLogic": {"primaryAngle": "hip_angle", "downThreshold": 120, "upThreshold": 90, "minHoldMs": 1000},
+        "contraindications": ["acute_lower_back_pain"],
+        "instructions": [
+            "Lie on your back with arms reaching toward ceiling",
+            "Bring knees up so hips and knees are at 90°",
+            "Slowly extend one arm overhead and opposite leg straight",
+            "Return to start and switch sides — keep lower back flat"
+        ]
+    },
+
+    # ── Balance Gentle ──
+    {
+        "id": "tandem_stance",
+        "label": "Tandem Stance",
+        "description": "Stand heel-to-toe for gentle balance training",
+        "category": "balance",
+        "targetMuscles": ["ankle_stabilizers", "core", "hip_abductors"],
+        "difficulty": "beginner",
+        "targetReps": 6,
+        "angleChecks": [
+            {
+                "name": "knee_angle",
+                "points": ["left_hip", "left_knee", "left_ankle"],
+                "targetMin": 160,
+                "targetMax": 180,
+                "feedbackLow": "Keep legs straight",
+                "feedbackHigh": "Good",
+                "feedbackGood": "Good tandem stance"
+            }
+        ],
+        "repLogic": {"primaryAngle": "knee_angle", "downThreshold": 150, "upThreshold": 170, "minHoldMs": 5000},
+        "contraindications": [],
+        "instructions": [
+            "Stand near a wall or counter for safety",
+            "Place one foot directly in front of the other (heel to toe)",
+            "Hold for 10-15 seconds",
+            "Switch which foot is in front"
+        ]
+    },
 ]
+
+
+
 
 
 def get_all_exercises():

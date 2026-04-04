@@ -2,7 +2,7 @@ import React, { useEffect, useState, type FC } from "react";
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "./firebase/config";
-import { getUserProfile } from "./services/firestoreService";
+import { getUserProfile, getLatestExercisePlan } from "./services/firestoreService";
 import { useAppStore } from "./store/useAppStore";
 import "./index.css";
 import { useToast } from "./hooks/useToast";
@@ -36,7 +36,7 @@ const OnboardingGuard: FC<{ children: React.ReactNode }> = ({ children }) => {
 
 const App: FC = () => {
   const { toasts, showToast } = useToast();
-  const { setFirebaseUser, setUser, setOnboardingComplete } = useAppStore();
+  const { setFirebaseUser, setUser, setOnboardingComplete, setExercisePlan } = useAppStore();
   const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
@@ -52,6 +52,11 @@ const App: FC = () => {
         if (profile) {
           setUser(profile);
           setOnboardingComplete(profile.onboardingComplete);
+          // Load exercise plan from Firestore so it persists across refreshes
+          try {
+            const plan = await getLatestExercisePlan(user.uid);
+            if (plan) setExercisePlan(plan);
+          } catch { /* ignore */ }
         } else {
           setOnboardingComplete(false);
         }

@@ -129,6 +129,7 @@ const OnboardingPage: FC = () => {
         const base64 = (reader.result as string).split(",")[1];
         const mimeType = file.type || "image/jpeg";
         const result = await processReportImage(base64, mimeType);
+        console.log("[Report] Gemini extracted data:", JSON.stringify(result, null, 2));
         setExtractedData({
           ...result,
           extractedAt: new Date().toISOString(),
@@ -184,6 +185,7 @@ const OnboardingPage: FC = () => {
             pain_regions: formData.painRegions,
             treatment_phase: formData.treatmentPhase,
             age: formData.age,
+            report_data: extractedData || null,
           }),
         });
         if (res.ok) {
@@ -455,19 +457,50 @@ const OnboardingPage: FC = () => {
                       <strong>Diagnosis:</strong> {extractedData.diagnosis}
                     </div>
                   )}
-                  {extractedData.medications.length > 0 && (
+                  {(extractedData as any).severity && (
+                    <div className="extracted-card__item">
+                      <strong>Severity:</strong>{" "}
+                      <span style={{
+                        color: ["severe","acute","critical"].includes((extractedData as any).severity?.toLowerCase())
+                          ? "#ef4444" : (extractedData as any).severity?.toLowerCase() === "moderate" ? "#f59e0b" : "#22c55e",
+                        fontWeight: 600,
+                      }}>
+                        {(extractedData as any).severity}
+                      </span>
+                    </div>
+                  )}
+                  {(extractedData.medications?.length ?? 0) > 0 && (
                     <div className="extracted-card__item">
                       <strong>Medications:</strong> {extractedData.medications.join(", ")}
                     </div>
                   )}
-                  {extractedData.restrictions.length > 0 && (
+                  {(extractedData.restrictions?.length ?? 0) > 0 && (
                     <div className="extracted-card__item">
                       <strong>Restrictions:</strong> {extractedData.restrictions.join(", ")}
                     </div>
                   )}
-                  {extractedData.recommendations.length > 0 && (
+                  {((extractedData as any).contraindications?.length ?? 0) > 0 && (
+                    <div className="extracted-card__item">
+                      <strong>Contraindications:</strong> {(extractedData as any).contraindications.join(", ")}
+                    </div>
+                  )}
+                  {((extractedData as any).recommended_exercises?.length ?? 0) > 0 && (
+                    <div className="extracted-card__item">
+                      <strong>Recommended Exercises:</strong> {(extractedData as any).recommended_exercises.join(", ")}
+                    </div>
+                  )}
+                  {(extractedData.recommendations?.length ?? 0) > 0 && (
                     <div className="extracted-card__item">
                       <strong>Recommendations:</strong> {extractedData.recommendations.join(", ")}
+                    </div>
+                  )}
+                  {/* Fallback: show raw text if no structured data */}
+                  {!extractedData.diagnosis && !(extractedData.medications?.length) && extractedData.rawText && (
+                    <div className="extracted-card__item">
+                      <strong>Extracted Text:</strong>
+                      <p style={{ whiteSpace: "pre-wrap", fontSize: 12, marginTop: 4, opacity: 0.8 }}>
+                        {extractedData.rawText.slice(0, 500)}
+                      </p>
                     </div>
                   )}
                 </div>

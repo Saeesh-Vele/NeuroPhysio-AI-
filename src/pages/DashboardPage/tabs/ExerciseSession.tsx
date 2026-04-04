@@ -3,7 +3,19 @@ import { useAppStore } from "../../../store/useAppStore";
 import { saveSession } from "../../../services/firestoreService";
 import { generateSessionInsight, generateRealtimeCoaching } from "../../../services/aiService";
 import { auth } from "../../../firebase/config";
+import { HiPlayCircle, HiInformationCircle, HiArrowTopRightOnSquare, HiLockClosed, HiCheckCircle, HiExclamationTriangle, HiXCircle, HiLightBulb, HiCpuChip } from "react-icons/hi2";
+import { FaDumbbell } from "react-icons/fa";
 import type { FeedbackResult } from "../../../types";
+
+interface ExerciseItem {
+  id: string;
+  label: string;
+  targetReps: number;
+  difficulty: string;
+  description?: string;
+  instructions?: string[];
+  youtubeUrl?: string;
+}
 
 const BACKEND_URL = import.meta.env.VITE_PYTHON_BACKEND_URL || "http://localhost:8000";
 const WS_URL = BACKEND_URL.replace("http", "ws");
@@ -31,6 +43,7 @@ const ExerciseSession: FC = () => {
   const coachingTimer = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
   const [exerciseInstructions, setExerciseInstructions] = useState<string[]>([]);
   const [exerciseDescription, setExerciseDescription] = useState("");
+  const [expandedCard, setExpandedCard] = useState<string | null>(null);
 
   // Refs
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -53,30 +66,22 @@ const ExerciseSession: FC = () => {
   useEffect(() => { feedbackRef.current = feedback; }, [feedback]);
 
   // Available exercises from plan or defaults
-  const [exercises, setExercises] = useState<{ id: string; label: string; targetReps: number }[]>([]);
+  const [exercises, setExercises] = useState<ExerciseItem[]>([]);
+  const [difficultyTab, setDifficultyTab] = useState<"beginner" | "intermediate" | "advanced">("beginner");
   const user = useAppStore((s) => s.user);
 
   useEffect(() => {
-    // Load exercises from plan or fetch personalized recommendations
-    if (exercisePlan?.exercises?.length) {
-      setExercises(
-        exercisePlan.exercises.map((e: any) => ({
-          id: e.exerciseId,
-          label: e.label,
-          targetReps: e.targetReps || 10,
-        }))
-      );
-    } else if (user?.injuryType) {
-      // No plan in store — re-generate from user's injury profile
+    const fetchFresh = (injuryType: string) => {
       fetch(`${BACKEND_URL}/recommend`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          injury_type: user.injuryType,
-          injury_region: user.injuryRegion || "",
-          pain_regions: user.painRegions || [],
-          treatment_phase: user.treatmentPhase || "active_rehab",
-          age: user.age || 30,
+          injury_type: injuryType,
+          injury_region: user?.injuryRegion || "",
+          pain_regions: user?.painRegions || [],
+          treatment_phase: user?.treatmentPhase || "active_rehab",
+          age: user?.age || 30,
+          report_data: (user as any)?.reportData || null,
         }),
       })
         .then((r) => r.json())
@@ -87,31 +92,54 @@ const ExerciseSession: FC = () => {
                 id: e.exerciseId,
                 label: e.label,
                 targetReps: e.targetReps || 10,
+                difficulty: e.difficulty || "beginner",
+                description: e.description || "",
+                instructions: e.instructions || [],
+                youtubeUrl: e.youtubeUrl || "",
               }))
             );
           }
         })
         .catch(() => {
-          // Final fallback — generic exercises
-          setExercises([
-            { id: "arm_raise", label: "Arm Raise", targetReps: 10 },
-            { id: "shoulder_abduction", label: "Shoulder Abduction", targetReps: 10 },
-            { id: "squat", label: "Squat", targetReps: 10 },
-            { id: "glute_bridge", label: "Glute Bridge", targetReps: 10 },
-          ]);
+          // Use plan as fallback if fetch fails
+          if (exercisePlan?.exercises?.length) {
+            setExercises(
+              exercisePlan.exercises.map((e: any) => ({
+                id: e.exerciseId,
+                label: e.label,
+                targetReps: e.targetReps || 10,
+                difficulty: e.difficulty || "beginner",
+                description: e.description || "",
+                instructions: e.instructions || [],
+                youtubeUrl: e.youtubeUrl || "",
+              }))
+            );
+          }
         });
+    };
+
+    // Always prefer fetching fresh from backend to get instructions + YouTube links
+    if (user?.injuryType) {
+      fetchFresh(user.injuryType);
+    } else if (exercisePlan?.exercises?.length) {
+      // Try to extract injury type from plan
+      fetchFresh(exercisePlan.basedOn || "general");
     } else {
-      // No user profile — show generic exercises
       setExercises([
-        { id: "arm_raise", label: "Arm Raise", targetReps: 10 },
-        { id: "shoulder_abduction", label: "Shoulder Abduction", targetReps: 10 },
-        { id: "squat", label: "Squat", targetReps: 10 },
-        { id: "knee_bend", label: "Knee Bend", targetReps: 10 },
-        { id: "glute_bridge", label: "Glute Bridge", targetReps: 10 },
-        { id: "bicep_curl", label: "Bicep Curl", targetReps: 10 },
+        { id: "pendulum_exercise", label: "Pendulum Exercise", targetReps: 8, difficulty: "beginner" },
+        { id: "scapular_squeeze", label: "Scapular Squeeze", targetReps: 8, difficulty: "beginner" },
+        { id: "ankle_pump", label: "Ankle Pump", targetReps: 10, difficulty: "beginner" },
+        { id: "cat_cow_stretch", label: "Cat-Cow Stretch", targetReps: 8, difficulty: "beginner" },
+        { id: "pelvic_tilt", label: "Pelvic Tilt", targetReps: 10, difficulty: "beginner" },
       ]);
     }
   }, [exercisePlan, user]);
+
+  // Filter by current difficulty tab
+  const filteredExercises = exercises.filter((e) => e.difficulty === difficultyTab);
+  const beginnerCount = exercises.filter((e) => e.difficulty === "beginner").length;
+  const intermediateCount = exercises.filter((e) => e.difficulty === "intermediate").length;
+  const advancedCount = exercises.filter((e) => e.difficulty === "advanced").length;
 
   // ── Start Camera ──
   const startCamera = useCallback(async () => {
@@ -309,7 +337,7 @@ const ExerciseSession: FC = () => {
 
     if (userId) {
       const sessionData = {
-        oduserId: userId,
+        userId: userId,
         exerciseId: activeExercise,
         exerciseLabel: activeLabel,
         reps,
@@ -378,27 +406,154 @@ const ExerciseSession: FC = () => {
               </span>
             </div>
             <div className="widget__body">
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 10 }}>
-                {exercises.map((ex) => (
+              {/* Difficulty Tabs */}
+              <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+                {([
+                  { key: "beginner" as const, label: "Beginner", count: beginnerCount, color: "#22c55e" },
+                  { key: "intermediate" as const, label: "Intermediate", count: intermediateCount, color: "#f59e0b" },
+                  { key: "advanced" as const, label: "Advanced", count: advancedCount, color: "#ef4444" },
+                ]).map((tab) => (
                   <button
-                    key={ex.id}
-                    className="btn btn-outline"
+                    key={tab.key}
+                    onClick={() => setDifficultyTab(tab.key)}
                     style={{
-                      padding: "16px 14px",
-                      textAlign: "left",
-                      flexDirection: "column",
-                      alignItems: "flex-start",
-                      gap: 4,
+                      flex: 1,
+                      padding: "12px 16px",
+                      borderRadius: 10,
+                      border: `2px solid ${difficultyTab === tab.key ? tab.color : "var(--color-border)"}`,
+                      background: difficultyTab === tab.key ? `${tab.color}15` : "transparent",
+                      color: difficultyTab === tab.key ? tab.color : "var(--color-grey-400)",
+                      cursor: tab.count > 0 ? "pointer" : "not-allowed",
+                      opacity: tab.count > 0 ? 1 : 0.4,
+                      transition: "all 0.2s ease",
+                      textAlign: "center",
                     }}
-                    onClick={() => startSession(ex.id)}
+                    disabled={tab.count === 0}
                   >
-                    <span style={{ fontWeight: 700, fontSize: 14 }}>{ex.label}</span>
-                    <span style={{ fontSize: 11, color: "var(--color-grey-400)" }}>
-                      Target: {ex.targetReps} reps
-                    </span>
+                    <div style={{ fontWeight: 700, fontSize: 14 }}>{tab.label}</div>
+                    <div style={{ fontSize: 11, marginTop: 2, opacity: 0.7 }}>
+                      {tab.count} exercise{tab.count !== 1 ? "s" : ""}
+                    </div>
                   </button>
                 ))}
               </div>
+
+              {/* Difficulty description */}
+              <div style={{
+                padding: "10px 14px",
+                borderRadius: 8,
+                background: "var(--color-surface-alt)",
+                marginBottom: 16,
+                fontSize: 12,
+                color: "var(--color-grey-400)",
+                lineHeight: 1.5,
+              }}>
+                {difficultyTab === "beginner" && <><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "#22c55e", marginRight: 6 }} /> Gentle exercises for early recovery. Low stress on injured areas, focus on range of motion and mobility.</>}
+                {difficultyTab === "intermediate" && <><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "#f59e0b", marginRight: 6 }} /> Moderate exercises for active rehabilitation. Builds strength while respecting recovery boundaries.</>}
+                {difficultyTab === "advanced" && <><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "#ef4444", marginRight: 6 }} /> Challenging exercises for late-stage recovery. Only proceed when your therapist approves progression.</>}
+              </div>
+
+              {/* Exercise Grid */}
+              {filteredExercises.length > 0 ? (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 12 }}>
+                  {filteredExercises.map((ex) => {
+                    const badgeColor = difficultyTab === "beginner" ? "#22c55e" : difficultyTab === "intermediate" ? "#f59e0b" : "#ef4444";
+                    const isExpanded = expandedCard === ex.id;
+                    return (
+                      <div
+                        key={ex.id}
+                        style={{
+                          border: `1px solid ${isExpanded ? badgeColor : "var(--color-border)"}`,
+                          borderRadius: 12,
+                          background: isExpanded ? `${badgeColor}08` : "var(--color-surface-alt)",
+                          transition: "all 0.25s ease",
+                          overflow: "hidden",
+                        }}
+                      >
+                        {/* Card Header */}
+                        <div
+                          style={{
+                            display: "flex", alignItems: "center", justifyContent: "space-between",
+                            padding: "14px 16px", cursor: "pointer",
+                          }}
+                          onClick={() => setExpandedCard(isExpanded ? null : ex.id)}
+                        >
+                          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                            <span style={{
+                              width: 10, height: 10, borderRadius: "50%",
+                              background: badgeColor, flexShrink: 0,
+                            }} />
+                            <div>
+                              <div style={{ fontWeight: 700, fontSize: 14 }}>{ex.label}</div>
+                              <div style={{ fontSize: 11, color: "var(--color-grey-400)", marginTop: 2 }}>
+                                Target: {ex.targetReps} reps
+                                {ex.description && ` · ${ex.description}`}
+                              </div>
+                            </div>
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <HiInformationCircle
+                              size={18}
+                              style={{ color: isExpanded ? badgeColor : "var(--color-grey-400)", transition: "color 0.2s" }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Expanded Details */}
+                        {isExpanded && (
+                          <div style={{
+                            padding: "0 16px 16px",
+                            borderTop: "1px solid var(--color-border)",
+                          }}>
+                            {/* Instructions */}
+                            {(ex.instructions?.length ?? 0) > 0 && (
+                              <div style={{ marginTop: 12 }}>
+                                <div style={{ fontSize: 12, fontWeight: 600, color: badgeColor, marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                                  How to perform
+                                </div>
+                                <ol style={{ margin: 0, paddingLeft: 18, fontSize: 13, lineHeight: 1.8, color: "var(--color-grey-300)" }}>
+                                  {ex.instructions!.map((step, i) => (
+                                    <li key={i} style={{ marginBottom: 4 }}>{step}</li>
+                                  ))}
+                                </ol>
+                              </div>
+                            )}
+                            {/* Action Buttons */}
+                            <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+                              <button
+                                className="btn btn-primary"
+                                style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 16px" }}
+                                onClick={() => startSession(ex.id)}
+                              >
+                                <HiPlayCircle size={18} /> Start Session
+                              </button>
+                              {ex.youtubeUrl && (
+                                <a
+                                  href={ex.youtubeUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="btn btn-outline"
+                                  style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 16px", textDecoration: "none" }}
+                                >
+                                  <HiArrowTopRightOnSquare size={16} /> Watch Tutorial
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div style={{ textAlign: "center", padding: "30px 20px", color: "var(--color-grey-400)" }}>
+                  <HiLockClosed size={32} style={{ marginBottom: 8, opacity: 0.5 }} />
+                  <p style={{ fontSize: 14 }}>No {difficultyTab} exercises available for your current recovery phase.</p>
+                  <p style={{ fontSize: 12, marginTop: 4, opacity: 0.7 }}>
+                    {difficultyTab !== "beginner" ? "Try switching to a lower difficulty level." : "Complete onboarding to get personalized exercises."}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -503,7 +658,7 @@ const ExerciseSession: FC = () => {
                   }}
                 >
                   <span>
-                    {feedback.status === "good" ? "✅" : feedback.status === "warning" ? "⚠️" : "❌"}
+                    {feedback.status === "good" ? <HiCheckCircle size={16} style={{ color: "#22c55e" }} /> : feedback.status === "warning" ? <HiExclamationTriangle size={16} style={{ color: "#f59e0b" }} /> : <HiXCircle size={16} style={{ color: "#ef4444" }} />}
                   </span>
                   {feedback.message}
                 </div>
@@ -568,7 +723,7 @@ const ExerciseSession: FC = () => {
                   </ol>
                   <div style={{ marginTop: 10, padding: "8px 10px", background: "rgba(16,185,129,0.1)", borderRadius: "var(--radius-sm)", border: "1px solid rgba(16,185,129,0.2)" }}>
                     <p style={{ fontSize: 11, color: "#10b981", margin: 0, fontWeight: 600 }}>
-                      💡 Rep counts when you complete the full movement cycle and return to starting position.
+                      <HiLightBulb size={14} style={{ display: "inline", verticalAlign: "middle", marginRight: 4 }} /> Rep counts when you complete the full movement cycle and return to starting position.
                     </p>
                   </div>
                 </div>
@@ -614,7 +769,7 @@ const ExerciseSession: FC = () => {
             {/* AI Coach (Groq) */}
             <div className="widget fade-up delay-3">
               <div className="widget__header">
-                <h3 className="widget__title">🤖 AI Coach</h3>
+                <h3 className="widget__title"><HiCpuChip size={16} style={{ display: "inline", verticalAlign: "middle", marginRight: 4 }} /> AI Coach</h3>
                 <span style={{ fontSize: 10, fontWeight: 700, color: "#a78bfa", background: "rgba(167,139,250,0.15)", padding: "2px 8px", borderRadius: 99 }}>
                   Groq
                 </span>
@@ -644,12 +799,12 @@ const ExerciseSession: FC = () => {
       {phase === "complete" && (
         <div className="widget fade-up" style={{ maxWidth: 600 }}>
           <div className="widget__header">
-            <h3 className="widget__title">Session Complete! 🎉</h3>
+            <h3 className="widget__title"><HiCheckCircle size={18} style={{ display: "inline", verticalAlign: "middle", marginRight: 4, color: "#22c55e" }} /> Session Complete!</h3>
           </div>
           <div className="widget__body">
             <div style={{ marginBottom: 20, display: "flex", justifyContent: "center" }}>
               <div className="stat-card" style={{ maxWidth: 250, textAlign: "center" }}>
-                <div className="stat-card__icon stat-card__icon--green">🏋️</div>
+                <div className="stat-card__icon stat-card__icon--green"><FaDumbbell size={18} /></div>
                 <div className="stat-card__value">{reps}/{targetReps}</div>
                 <div className="stat-card__label">Reps Completed</div>
               </div>
@@ -678,7 +833,7 @@ const ExerciseSession: FC = () => {
                 marginBottom: 20,
               }}>
                 <div style={{ fontSize: 11, fontWeight: 600, color: "var(--color-accent-text)", textTransform: "uppercase", marginBottom: 6 }}>
-                  🤖 AI Coach — Groq
+                  <HiCpuChip size={14} style={{ display: "inline", verticalAlign: "middle", marginRight: 4 }} /> AI Coach — Groq
                 </div>
                 <p style={{ fontSize: 14, color: "var(--color-grey-100)", lineHeight: 1.6, fontStyle: "italic" }}>
                   "{aiInsight}"

@@ -355,7 +355,8 @@ class RecommendationRequest(BaseModel):
     pain_regions: list = []
     treatment_phase: str = "active_rehab"
     age: int = 30
-    mobility_scores: dict = None
+    mobility_scores: Optional[dict] = None
+    report_data: Optional[dict] = None
 
 
 @app.post("/recommend")
@@ -368,6 +369,7 @@ async def recommend(req: RecommendationRequest):
         treatment_phase=req.treatment_phase,
         age=req.age,
         mobility_scores=req.mobility_scores,
+        report_data=req.report_data,
     )
     return {"recommendations": recs, "count": len(recs)}
 

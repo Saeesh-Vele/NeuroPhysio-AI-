@@ -1,4 +1,6 @@
 import React, { useEffect, useState, type FC } from "react";
+import { HiCheckCircle, HiArrowTrendingUp, HiClock } from "react-icons/hi2";
+import { FaDumbbell, FaBullseye, FaChartBar, FaBrain } from "react-icons/fa";
 import { auth } from "../../../firebase/config";
 import {
   getUserSessions,
@@ -84,22 +86,22 @@ const Progress: FC = () => {
       {/* Top Stats */}
       <div className="grid-4" style={{ marginBottom: 24 }}>
         <div className="stat-card fade-up delay-1">
-          <div className="stat-card__icon stat-card__icon--green">🏋️</div>
+          <div className="stat-card__icon stat-card__icon--green"><FaDumbbell size={18} /></div>
           <div className="stat-card__value">{totalSessions}</div>
           <div className="stat-card__label">Total Sessions</div>
         </div>
         <div className="stat-card fade-up delay-2">
-          <div className="stat-card__icon stat-card__icon--blue">🎯</div>
+          <div className="stat-card__icon stat-card__icon--blue"><FaBullseye size={18} /></div>
           <div className="stat-card__value">{avgAccuracy}%</div>
           <div className="stat-card__label">Avg Accuracy</div>
         </div>
         <div className="stat-card fade-up delay-3">
-          <div className="stat-card__icon stat-card__icon--orange">📊</div>
+          <div className="stat-card__icon stat-card__icon--orange"><FaChartBar size={18} /></div>
           <div className="stat-card__value">{totalReps}</div>
           <div className="stat-card__label">Total Reps</div>
         </div>
         <div className="stat-card fade-up delay-4">
-          <div className="stat-card__icon stat-card__icon--green">🧠</div>
+          <div className="stat-card__icon stat-card__icon--green"><FaBrain size={18} /></div>
           <div className="stat-card__value">{avgCog}%</div>
           <div className="stat-card__label">Avg Cognitive Score</div>
         </div>
@@ -168,7 +170,7 @@ const Progress: FC = () => {
             <div className="table-wrap">
               <table className="data-table">
                 <thead>
-                  <tr><th>Time</th><th>Exercise</th><th>Reps</th><th>Accuracy</th><th>Duration</th></tr>
+                  <tr><th>Time</th><th>Exercise</th><th>Reps</th><th>Status</th><th>Duration</th></tr>
                 </thead>
                 <tbody>
                   {sessions.length === 0 ? (
@@ -176,17 +178,23 @@ const Progress: FC = () => {
                       No exercise sessions yet. Start your first session!
                     </td></tr>
                   ) : (
-                    sessions.slice(0, 15).map((s, i) => (
-                      <tr key={i}>
-                        <td style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>{relativeTime(s.timestamp)}</td>
-                        <td>{s.exerciseLabel}</td>
-                        <td>{s.reps}/{s.targetReps}</td>
-                        <td style={{ fontWeight: 700, color: (s.accuracy || 0) >= 70 ? "var(--color-accent-text)" : "var(--color-warning)" }}>
-                          {s.accuracy}%
-                        </td>
-                        <td style={{ fontFamily: "var(--font-mono)" }}>{Math.floor((s.duration || 0) / 60)}:{String((s.duration || 0) % 60).padStart(2, "0")}</td>
-                      </tr>
-                    ))
+                    sessions.slice(0, 15).map((s, i) => {
+                      const met = (s.reps || 0) >= (s.targetReps || 10);
+                      const exceeded = (s.reps || 0) > (s.targetReps || 10);
+                      return (
+                        <tr key={i}>
+                          <td style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>{relativeTime(s.timestamp)}</td>
+                          <td>{s.exerciseLabel}</td>
+                          <td>{s.reps}/{s.targetReps}</td>
+                          <td style={{ fontWeight: 700, color: exceeded ? "#22c55e" : met ? "var(--color-accent-text)" : "var(--color-warning)" }}>
+                            <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                              {exceeded ? <><HiArrowTrendingUp size={16} /> Exceeded</> : met ? <><HiCheckCircle size={16} /> Completed</> : <><HiClock size={14} /> {Math.round(((s.reps || 0) / (s.targetReps || 10)) * 100)}%</>}
+                            </span>
+                          </td>
+                          <td style={{ fontFamily: "var(--font-mono)" }}>{Math.floor((s.duration || 0) / 60)}:{String((s.duration || 0) % 60).padStart(2, "0")}</td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>

@@ -8,7 +8,7 @@ const GEMINI_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 const GROQ_KEY = import.meta.env.VITE_GROQ_API_KEY;
 
 const GEMINI_URL =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 
 const SYSTEM_PROMPT =
@@ -131,7 +131,7 @@ export async function generateWeeklySummary(
 
     const prompt = `${SYSTEM_PROMPT}
 
-Analyze this patient's 7-day rehabilitation data and provide a structured summary:
+Analyze this patient's 7-day rehabilitation data and provide a detailed, actionable recovery report.
 
 EXERCISE SESSIONS:
 ${sessionSummary || "No sessions recorded"}
@@ -139,26 +139,59 @@ ${sessionSummary || "No sessions recorded"}
 PAIN LOGS:
 ${painSummary || "No pain logs"}
 
-Provide your analysis in this exact format:
-📈 PROGRESS: [2 sentences on improvement trends]
-⚠️ CONCERNS: [1-2 sentences on any worrying patterns]
-💡 RECOMMENDATIONS: [2-3 specific actionable suggestions]`;
+Provide your analysis in this exact format (be detailed and specific — at least 2-3 sentences per section):
 
-    const res = await fetch(`${GEMINI_URL}?key=${GEMINI_KEY}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { maxOutputTokens: 400, temperature: 0.6 },
-      }),
-    });
+PROGRESS OVERVIEW
+Analyze the patient's exercise consistency, rep completion rates, and overall trajectory. Mention specific exercises and how they've improved.
 
-    if (!res.ok) throw new Error(`Gemini API error: ${res.status}`);
-    const data = await res.json();
-    return (
-      data.candidates?.[0]?.content?.parts?.[0]?.text ||
-      "Weekly summary temporarily unavailable."
-    );
+PAIN & RISK ASSESSMENT
+Identify any concerning pain patterns. Flag if any pain levels are above 6/10 or worsening. If no pain logs exist, note the importance of tracking pain.
+
+DAILY LIFESTYLE RECOMMENDATIONS
+Provide 3-4 specific daily-life tips related to their injury (e.g., "Avoid lifting objects heavier than 5 lbs with the affected arm", "Use ice packs for 15 minutes after exercise sessions", "Sleep on the unaffected side with a pillow for support").
+
+THINGS TO AVOID
+List 3-4 specific activities or movements the patient should strictly avoid based on their exercises and injury pattern (e.g., "Do NOT do overhead reaching or heavy lifting", "Avoid sudden twisting movements").
+
+EXERCISE ADJUSTMENTS
+Suggest specific changes to their exercise routine — increase reps, add new exercises, or reduce intensity where needed.
+
+NEXT WEEK GOALS
+Set 2-3 concrete, measurable goals for the coming week (e.g., "Complete 5 exercise sessions", "Increase pendulum reps to 12").`;
+
+    // Retry logic for rate limiting (429)
+    let lastErr = "";
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const res = await fetch(`${GEMINI_URL}?key=${GEMINI_KEY}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { maxOutputTokens: 1000, temperature: 0.6 },
+          }),
+        });
+
+        if (res.status === 429) {
+          // Rate limited — wait and retry
+          const waitMs = Math.pow(2, attempt + 1) * 1000; // 2s, 4s, 8s
+          console.warn(`[AI] Gemini rate limited, retrying in ${waitMs}ms...`);
+          await new Promise((r) => setTimeout(r, waitMs));
+          continue;
+        }
+        if (!res.ok) throw new Error(`Gemini API error: ${res.status}`);
+        const data = await res.json();
+        return (
+          data.candidates?.[0]?.content?.parts?.[0]?.text ||
+          "Weekly summary temporarily unavailable."
+        );
+      } catch (err: any) {
+        lastErr = err.message || String(err);
+        console.warn(`[AI] Gemini attempt ${attempt + 1} failed:`, lastErr);
+      }
+    }
+    console.error("[AI] generateWeeklySummary exhausted retries:", lastErr);
+    return "Weekly insights are being generated. Please try again later.";
   } catch (err) {
     console.error("[AI] generateWeeklySummary error:", err);
     return "Weekly insights are being generated. Please try again later.";
@@ -217,8 +250,11 @@ export async function processReportImage(
 Analyze this medical report/prescription image. Extract the following information in JSON format:
 {
   "diagnosis": "main diagnosis or condition",
+  "severity": "mild/moderate/severe/acute/critical",
   "medications": ["list of medications mentioned"],
   "restrictions": ["any activity restrictions or precautions"],
+  "contraindications": ["specific exercises or movements to AVOID, e.g. heavy_lifting, shoulder_overhead"],
+  "recommended_exercises": ["specific exercises recommended, e.g. pendulum, stretching, isometric"],
   "recommendations": ["treatment recommendations"],
   "rawText": "full text extracted from the image"
 }
