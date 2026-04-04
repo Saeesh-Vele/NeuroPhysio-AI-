@@ -1,0 +1,250 @@
+/* ===== GOOGLE FONTS (ADD IN index.html) ===== */
+/* 
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Sora:wght@500;600&display=swap" rel="stylesheet">
+*/
+
+/* ===== GLOBAL ===== */
+body {
+  font-family: 'Inter', sans-serif;
+}
+
+/* ===== NAVBAR CONTAINER ===== */
+.navbar-container {
+  position: fixed;
+  top: 0;
+  width: 100%;
+  padding: 12px 20px;
+  display: flex;
+  justify-content: center;
+  z-index: 1000;
+}
+
+/* ===== NAVBAR ===== */
+.navbar-content {
+  width: 100%;
+  max-width: 1200px;
+  padding: 12px 24px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  border-radius: 999px;
+
+  background: rgba(20, 20, 20, 0.55);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+
+  border: 1px solid rgba(255, 255, 255, 0.06);
+
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+
+  transition: all 0.3s ease;
+}
+
+.navbar-content.scrolled {
+  background: rgba(15, 15, 15, 0.85);
+}
+
+/* ===== LINKS ===== */
+.navbar-links-desktop {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+}
+
+.navbar-link {
+  background: none;
+  border: none;
+  color: #a1a1aa;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  position: relative;
+
+  transition: all 0.25s ease;
+}
+
+.navbar-link::after {
+  content: "";
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0%;
+  height: 2px;
+  background: #4ade80;
+  transition: width 0.25s ease;
+}
+
+.navbar-link:hover {
+  color: #ffffff;
+}
+
+.navbar-link:hover::after {
+  width: 100%;
+}
+
+/* ===== LOGO ===== */
+.navbar-brand {
+  font-family: 'Sora', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: white;
+  letter-spacing: 0.6px;
+
+  background: none;
+  border: none;
+  cursor: pointer;
+
+  transition: all 0.3s ease;
+}
+
+.navbar-brand:hover {
+  color: #4ade80;
+}
+
+/* ===== RIGHT SIDE ===== */
+.navbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ===== LOGIN BUTTON ===== */
+.navbar-login-btn {
+  background: transparent;
+  color: #e5e5e5;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+
+  padding: 6px 16px;
+  border-radius: 999px;
+
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+
+  transition: all 0.25s ease;
+}
+
+.navbar-login-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* ===== CTA BUTTON ===== */
+.navbar-cta-btn {
+  background: linear-gradient(135deg, #4ade80, #22c55e);
+  color: #111;
+
+  padding: 6px 18px;
+  border-radius: 999px;
+
+  font-size: 13px;
+  font-weight: 600;
+
+  border: none;
+  cursor: pointer;
+
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 14px rgba(34, 197, 94, 0.3);
+}
+
+.navbar-cta-btn:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 6px 20px rgba(34, 197, 94, 0.5);
+}
+
+/* ===== MOBILE TOGGLE ===== */
+.navbar-mobile-toggle {
+  display: none;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 22px;
+  cursor: pointer;
+}
+
+/* ===== MOBILE ===== */
+@media (max-width: 768px) {
+  .navbar-content {
+    padding: 10px 16px;
+    border-radius: 20px;
+  }
+
+  .navbar-links-desktop {
+    display: none;
+  }
+
+  .desktop-login {
+    display: none;
+  }
+
+  .navbar-mobile-toggle {
+    display: block;
+  }
+}
+
+/* ===== MOBILE MENU ===== */
+.mobile-menu-overlay {
+  position: fixed;
+  inset: 0;
+  background: #0a0a0a;
+  padding: 24px;
+  z-index: 2000;
+
+  display: flex;
+  flex-direction: column;
+}
+
+.mobile-menu-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mobile-menu-close {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 26px;
+  cursor: pointer;
+}
+
+.mobile-menu-links {
+  margin-top: 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.mobile-menu-link {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 22px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+
+  transition: opacity 0.2s ease;
+}
+
+.mobile-menu-link:hover {
+  opacity: 0.7;
+}
+
+.mobile-menu-footer {
+  margin-top: auto;
+  color: #888;
+}
+
+.mobile-menu-footer p {
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+
+.mobile-socials {
+  display: flex;
+  gap: 16px;
+  font-size: 14px;
+}

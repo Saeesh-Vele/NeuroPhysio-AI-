@@ -1,0 +1,26 @@
+.toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 9999;
+}
+
+.toast-item {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-light);
+  color: var(--color-white);
+  padding: 12px 18px;
+  border-radius: var(--radius-md);
+  fontSize: 14px;
+  font-family: var(--font-body);
+  box-shadow: var(--shadow-md);
+  max-width: 320px;
+}
+
+.toast-error {
+  border-color: rgba(252,165,165,0.5);
+  color: #fca5a5;
+}
