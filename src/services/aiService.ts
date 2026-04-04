@@ -110,7 +110,7 @@ Reply with ONLY the coaching message, nothing else.`;
   }
 }
 
-// ── Gemini (deep weekly summary) ─────────────────────────
+// ── Groq (deep weekly summary — switched from Gemini to avoid rate limits) ──
 export async function generateWeeklySummary(
   sessions: ExerciseSession[],
   painLogs: PainLog[],
@@ -136,14 +136,12 @@ export async function generateWeeklySummary(
       const cogSlice = cognitiveSessions.slice(0, 15);
       const avgAcc = Math.round(cogSlice.reduce((a, c) => a + (c.accuracy || 0), 0) / cogSlice.length);
       const avgTime = Math.round(cogSlice.reduce((a, c) => a + (c.responseTimeMs || 0), 0) / cogSlice.length);
-      // Trend: compare first half vs second half
       const mid = Math.floor(cogSlice.length / 2);
       const recentHalf = cogSlice.slice(0, mid || 1);
       const olderHalf = cogSlice.slice(mid || 1);
       const recentAvg = recentHalf.length > 0 ? recentHalf.reduce((a, c) => a + c.accuracy, 0) / recentHalf.length : 0;
       const olderAvg = olderHalf.length > 0 ? olderHalf.reduce((a, c) => a + c.accuracy, 0) / olderHalf.length : 0;
       const trend = recentAvg > olderAvg + 5 ? "Improving" : recentAvg < olderAvg - 5 ? "Declining" : "Stable";
-      // Difficulty distribution
       const diffCounts: Record<string, number> = {};
       cogSlice.forEach((c) => { diffCounts[c.difficulty] = (diffCounts[c.difficulty] || 0) + 1; });
       const diffStr = Object.entries(diffCounts).map(([k, v]) => `${k}: ${v}`).join(", ");
@@ -194,46 +192,34 @@ Suggest specific changes to their exercise routine — increase reps, add new ex
 NEXT WEEK GOALS
 Set 2-3 concrete, measurable goals for the coming week (e.g., "Complete 5 exercise sessions", "Increase pendulum reps to 12").`;
 
-    // Retry logic for rate limiting (429)
-    let lastErr = "";
-    for (let attempt = 0; attempt < 3; attempt++) {
-      try {
-        const res = await fetch(`${GEMINI_URL}?key=${GEMINI_KEY}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { maxOutputTokens: 1000, temperature: 0.6 },
-          }),
-        });
+    const res = await fetch(GROQ_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${GROQ_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "llama-3.1-70b-versatile",
+        messages: [{ role: "user", content: prompt }],
+        max_tokens: 1200,
+        temperature: 0.6,
+      }),
+    });
 
-        if (res.status === 429) {
-          // Rate limited — wait and retry
-          const waitMs = Math.pow(2, attempt + 1) * 1000; // 2s, 4s, 8s
-          console.warn(`[AI] Gemini rate limited, retrying in ${waitMs}ms...`);
-          await new Promise((r) => setTimeout(r, waitMs));
-          continue;
-        }
-        if (!res.ok) throw new Error(`Gemini API error: ${res.status}`);
-        const data = await res.json();
-        return (
-          data.candidates?.[0]?.content?.parts?.[0]?.text ||
-          "Weekly summary temporarily unavailable."
-        );
-      } catch (err: any) {
-        lastErr = err.message || String(err);
-        console.warn(`[AI] Gemini attempt ${attempt + 1} failed:`, lastErr);
-      }
+    if (!res.ok) {
+      const errText = await res.text().catch(() => "");
+      console.error("[AI] Groq weekly summary error:", res.status, errText);
+      throw new Error(`Groq API error: ${res.status}`);
     }
-    console.error("[AI] generateWeeklySummary exhausted retries:", lastErr);
-    return "Weekly insights are being generated. Please try again later.";
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content || "Weekly summary temporarily unavailable.";
   } catch (err) {
     console.error("[AI] generateWeeklySummary error:", err);
     return "Weekly insights are being generated. Please try again later.";
   }
 }
 
-// ── Gemini (risk alert) ──────────────────────────────────
+// ── Groq (risk alert — switched from Gemini) ─────────────
 export async function generateRiskAlert(
   painLogs: PainLog[]
 ): Promise<string | null> {
@@ -248,21 +234,23 @@ ${highPain.map((p) => `- ${p.bodyRegion}: ${p.intensity}/10 — "${p.notes}"`).j
 
 Generate a 1-2 sentence safety alert recommending professional consultation. Be clear but not alarmist.`;
 
-    const res = await fetch(`${GEMINI_URL}?key=${GEMINI_KEY}`, {
+    const res = await fetch(GROQ_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${GROQ_KEY}`,
+      },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { maxOutputTokens: 100, temperature: 0.3 },
+        model: "llama-3.1-8b-instant",
+        messages: [{ role: "user", content: prompt }],
+        max_tokens: 100,
+        temperature: 0.3,
       }),
     });
 
     if (!res.ok) return "High pain detected. Please consult your physician.";
     const data = await res.json();
-    return (
-      data.candidates?.[0]?.content?.parts?.[0]?.text ||
-      "High pain detected. Please consult your physician."
-    );
+    return data.choices?.[0]?.message?.content || "High pain detected. Please consult your physician.";
   } catch {
     return "High pain levels detected. We recommend speaking with your physician.";
   }

@@ -257,7 +257,7 @@ const Progress: FC = () => {
         <div className="widget fade-up delay-5" style={{ marginTop: 24 }}>
           <div className="widget__header">
             <h3 className="widget__title">AI Weekly Analysis</h3>
-            <span className="badge-accent">Gemini</span>
+            <span className="badge-accent">Groq</span>
           </div>
           <div className="widget__body">
             <p style={{ color: "var(--color-grey-100)", fontSize: 14, lineHeight: 1.7, whiteSpace: "pre-wrap" }}>
