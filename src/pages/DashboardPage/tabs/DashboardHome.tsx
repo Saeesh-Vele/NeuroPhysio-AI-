@@ -171,7 +171,7 @@ const DashboardHome: FC = () => {
           <div className="widget__body">
             {totalSessions === 0 ? (
               <div style={{ textAlign: "center", padding: "40px 20px" }}>
-                <p style={{ fontSize: 40, marginBottom: 8 }}>📊</p>
+                <p style={{ fontSize: 40, marginBottom: 8 }}><HiChartBar size={40} style={{ color: "var(--color-grey-400)" }} /></p>
                 <p style={{ fontSize: 14, color: "var(--color-grey-400)" }}>Complete your first exercise session to see your chart!</p>
               </div>
             ) : (() => {

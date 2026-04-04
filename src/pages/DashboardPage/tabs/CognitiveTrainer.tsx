@@ -1,4 +1,5 @@
 import React, { useState, useCallback, type FC } from "react";
+import { FaBrain } from "react-icons/fa";
 import { auth } from "../../../firebase/config";
 import { saveCognitiveSession } from "../../../services/firestoreService";
 
@@ -116,7 +117,7 @@ const CognitiveTrainer: FC = () => {
       {/* Stats */}
       <div className="grid-3" style={{ marginBottom: 24 }}>
         <div className="stat-card fade-up delay-1">
-          <div className="stat-card__icon stat-card__icon--blue">🧠</div>
+          <div className="stat-card__icon stat-card__icon--blue"><FaBrain size={18} /></div>
           <div className="stat-card__value">{accuracy}%</div>
           <div className="stat-card__label">Accuracy</div>
         </div>

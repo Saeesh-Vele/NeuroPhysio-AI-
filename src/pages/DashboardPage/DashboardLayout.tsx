@@ -1,4 +1,5 @@
 import React, { useState, type FC } from "react";
+import { HiBars3 } from "react-icons/hi2";
 import { Outlet } from "react-router-dom";
 import Sidebar from "../../components/Sidebar/Sidebar";
 import "./DashboardPage.css";
@@ -13,7 +14,7 @@ const DashboardLayout: FC = () => {
         className="sidebar-toggle"
         onClick={() => setMobileOpen((o) => !o)}
       >
-        ☰
+        <HiBars3 size={22} />
       </button>
 
       {/* Sidebar */}

@@ -1,8 +1,18 @@
-import React, { type FC } from "react";
+import React, { type FC, type ReactNode } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth";
 import { auth } from "../../firebase/config";
 import { useAppStore } from "../../store/useAppStore";
+import {
+  HiHome,
+  HiBolt,
+  HiHeart,
+  HiCpuChip,
+  HiChartBar,
+  HiDocumentText,
+  HiCog6Tooth,
+  HiArrowRightOnRectangle,
+} from "react-icons/hi2";
 
 interface SidebarProps {
   mobileOpen: boolean;
@@ -12,17 +22,17 @@ interface SidebarProps {
 interface NavItem {
   to: string;
   label: string;
-  icon: string;
+  icon: ReactNode;
 }
 
 const navItems: NavItem[] = [
-  { to: "/dashboard",              label: "Dashboard",         icon: "🏠" },
-  { to: "/dashboard/exercise",     label: "Exercise Session",  icon: "🏃" },
-  { to: "/dashboard/pain-tracker", label: "Pain Tracker",      icon: "❤️" },
-  { to: "/dashboard/cognitive",    label: "Cognitive Trainer",  icon: "🧠" },
-  { to: "/dashboard/progress",     label: "Progress",          icon: "📈" },
-  { to: "/dashboard/doctor-report",label: "Doctor Report",     icon: "📋" },
-  { to: "/dashboard/settings",     label: "Settings",          icon: "⚙️" },
+  { to: "/dashboard",              label: "Dashboard",         icon: <HiHome size={18} /> },
+  { to: "/dashboard/exercise",     label: "Exercise Session",  icon: <HiBolt size={18} /> },
+  { to: "/dashboard/pain-tracker", label: "Pain Tracker",      icon: <HiHeart size={18} /> },
+  { to: "/dashboard/cognitive",    label: "Cognitive Trainer",  icon: <HiCpuChip size={18} /> },
+  { to: "/dashboard/progress",     label: "Progress",          icon: <HiChartBar size={18} /> },
+  { to: "/dashboard/doctor-report",label: "Doctor Report",     icon: <HiDocumentText size={18} /> },
+  { to: "/dashboard/settings",     label: "Settings",          icon: <HiCog6Tooth size={18} /> },
 ];
 
 const Sidebar: FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) => {
@@ -89,7 +99,7 @@ const Sidebar: FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) => {
               onClick={handleLogout}
               aria-label="Sign out"
             >
-              ↗
+              <HiArrowRightOnRectangle size={16} />
             </button>
           </div>
         </div>

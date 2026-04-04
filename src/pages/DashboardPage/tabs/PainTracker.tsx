@@ -1,4 +1,5 @@
 import React, { useState, useEffect, type FC } from "react";
+import { FaChartBar } from "react-icons/fa";
 import { auth } from "../../../firebase/config";
 import { savePainLog, getUserPainLogs } from "../../../services/firestoreService";
 import type { PainLog } from "../../../types";
@@ -226,7 +227,7 @@ const PainTracker: FC = () => {
 
           {/* Quick Stats */}
           <div className="stat-card fade-up delay-2">
-            <div className="stat-card__icon stat-card__icon--green">📊</div>
+            <div className="stat-card__icon stat-card__icon--green"><FaChartBar size={18} /></div>
             <div className="stat-card__value" style={{ color: entries.length > 0 ? getPainColor(entries[0]?.intensity || 0) : "var(--color-white)" }}>
               {entries.length > 0 ? `${entries[0].intensity}/10` : "—"}
             </div>

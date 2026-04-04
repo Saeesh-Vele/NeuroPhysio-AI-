@@ -711,7 +711,7 @@ const ExerciseSession: FC = () => {
             {exerciseInstructions.length > 0 && (
               <div className="widget fade-up delay-2" style={{ borderLeft: "3px solid var(--color-success)" }}>
                 <div className="widget__header">
-                  <h3 className="widget__title">📋 How to Perform</h3>
+                  <h3 className="widget__title"><HiInformationCircle size={16} style={{ display: "inline", verticalAlign: "middle", marginRight: 4 }} /> How to Perform</h3>
                 </div>
                 <div className="widget__body" style={{ padding: "12px 16px" }}>
                   <ol style={{ margin: 0, paddingLeft: 18, display: "flex", flexDirection: "column", gap: 6 }}>
