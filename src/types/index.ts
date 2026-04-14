@@ -39,15 +39,23 @@ export interface UserProfile {
   onboardingComplete: boolean;
   createdAt: string;
   updatedAt: string;
-  // Mobility scores from onboarding assessment
-  mobilityScores?: {
-    shoulder: number;
-    knee: number;
-    hip: number;
-    balance: number;
-  };
+  // Mobility assessment from onboarding (camera-based)
+  mobilityAssessment?: MobilityAssessmentResult[];
   // Extracted report data
   reportData?: ExtractedReportData;
+  // Exercise difficulty unlocks
+  unlockedDifficulties?: string[];  // ['beginner', 'intermediate', 'advanced']
+}
+
+// ── Mobility Assessment (onboarding) ──
+export interface MobilityAssessmentResult {
+  exerciseId: string;
+  exerciseLabel: string;
+  peakAngle: number;
+  fullRomRange: number;    // full ROM for this exercise
+  romPercentage: number;   // peakAngle / fullRomRange * 100
+  mobilityLevel: 'low' | 'moderate' | 'good' | 'excellent';
+  assessedAt: string;
 }
 
 export interface PainRegion {
@@ -168,13 +176,34 @@ export interface ExerciseSession {
   exerciseId: string;
   exerciseLabel: string;
   reps: number;
+  fullReps: number;
+  partialReps: number;
   targetReps: number;
   accuracy: number;
   duration: number;       // seconds
   avgAngle: number;
+  peakAngle: number;      // max angle achieved
+  maxRomAchieved: number; // max range of motion delta
+  restAngle: number | null; // baseline angle at rest
   feedback: string;
   timestamp: string;
   aiInsight?: string;
+  difficulty?: string;    // beginner/intermediate/advanced
+}
+
+// ── Mobility Progress (ROM over time) ──
+export interface MobilityProgress {
+  id?: string;
+  userId: string;
+  exerciseId: string;
+  exerciseLabel: string;
+  peakAngle: number;
+  maxRomAchieved: number;
+  restAngle: number | null;
+  fullReps: number;
+  partialReps: number;
+  difficulty: string;
+  timestamp: string;
 }
 
 // ── Pain Log ──
@@ -253,6 +282,12 @@ export interface PoseFrame {
   jointAngles: Record<string, number>;
   repCount: number;
   repState: RepState;
+  fullReps: number;
+  partialReps: number;
+  peakAngle: number;
+  maxRomAchieved: number;
+  restAngle: number | null;
+  currentAttemptPeak: number;
   accuracy: number;
   feedback: FeedbackResult;
   exerciseId: string;

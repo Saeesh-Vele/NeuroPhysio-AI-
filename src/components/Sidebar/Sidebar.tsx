@@ -14,6 +14,7 @@ import {
   HiCog6Tooth,
   HiArrowRightOnRectangle,
 } from "react-icons/hi2";
+import { FaUtensils } from "react-icons/fa6";
 
 interface SidebarProps {
   mobileOpen: boolean;
@@ -27,14 +28,14 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { to: "/dashboard",              label: "Dashboard",         icon: <HiHome size={18} /> },
-  { to: "/dashboard/exercise",     label: "Exercise Session",  icon: <HiBolt size={18} /> },
-  { to: "/dashboard/pain-tracker", label: "Pain Tracker",      icon: <HiHeart size={18} /> },
-  { to: "/dashboard/cognitive",    label: "Cognitive Trainer",  icon: <HiCpuChip size={18} /> },
-  { to: "/dashboard/progress",     label: "Progress",          icon: <HiChartBar size={18} /> },
-  { to: "/dashboard/ai-chat",      label: "AI Chat",            icon: <HiChatBubbleLeftRight size={18} /> },
-  { to: "/dashboard/doctor-report",label: "Doctor Report",     icon: <HiDocumentText size={18} /> },
-  { to: "/dashboard/settings",     label: "Settings",          icon: <HiCog6Tooth size={18} /> },
+  { to: "/dashboard", label: "Dashboard", icon: <HiHome size={18} /> },
+  { to: "/dashboard/exercise", label: "Exercise Session", icon: <HiBolt size={18} /> },
+  { to: "/dashboard/pain-tracker", label: "Pain Tracker", icon: <HiHeart size={18} /> },
+  { to: "/dashboard/cognitive", label: "Cognitive Trainer", icon: <HiCpuChip size={18} /> },
+  { to: "/dashboard/progress", label: "Progress", icon: <HiChartBar size={18} /> },
+  { to: "/dashboard/ai-chat", label: "AI Chat", icon: <HiChatBubbleLeftRight size={18} /> },
+  { to: "/dashboard/doctor-report", label: "Doctor Report", icon: <HiDocumentText size={18} /> },
+  { to: "/dashboard/settings", label: "Settings", icon: <HiCog6Tooth size={18} /> },
 ];
 
 const Sidebar: FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) => {

@@ -24,7 +24,7 @@ INJURY_SAFE_EXERCISES = {
             "arm_raise", "doorway_stretch",
         ],
         "advanced": [
-            "wall_angel", "bicep_curl", "tricep_extension",
+            "wall_angel", "bicep_curl", "tricep_extension", "arm_press",
         ],
     },
     "rotator_cuff_repair": {
@@ -38,7 +38,7 @@ INJURY_SAFE_EXERCISES = {
         ],
         "advanced": [
             "shoulder_abduction", "arm_raise", "wall_angel",
-            "bicep_curl",
+            "bicep_curl", "arm_press",
         ],
     },
     "shoulder_replacement": {
@@ -52,7 +52,7 @@ INJURY_SAFE_EXERCISES = {
         ],
         "advanced": [
             "shoulder_abduction", "wall_angel", "bicep_curl",
-            "doorway_stretch",
+            "doorway_stretch", "arm_press",
         ],
     },
     "frozen_shoulder": {
@@ -66,7 +66,7 @@ INJURY_SAFE_EXERCISES = {
         ],
         "advanced": [
             "wall_angel", "scapular_squeeze", "bicep_curl",
-            "wall_pushup",
+            "wall_pushup", "arm_press",
         ],
     },
 
@@ -267,8 +267,8 @@ DEFAULT_EXERCISES = {
 PAIN_EXCLUSIONS = {
     "left_knee": ["squat", "wall_squat", "step_up", "sit_to_stand", "knee_bend", "lunge"],
     "right_knee": ["squat", "wall_squat", "step_up", "sit_to_stand", "knee_bend", "lunge"],
-    "left_shoulder": ["wall_pushup", "tricep_extension", "wall_angel", "arm_raise", "shoulder_abduction"],
-    "right_shoulder": ["wall_pushup", "tricep_extension", "wall_angel", "arm_raise", "shoulder_abduction"],
+    "left_shoulder": ["wall_pushup", "tricep_extension", "wall_angel", "arm_raise", "shoulder_abduction", "arm_press"],
+    "right_shoulder": ["wall_pushup", "tricep_extension", "wall_angel", "arm_raise", "shoulder_abduction", "arm_press"],
     "lower_back": ["squat", "wall_squat", "dead_bug", "prone_press_up"],
     "left_hip": ["squat", "wall_squat", "step_up", "hip_abduction", "lunge"],
     "right_hip": ["squat", "wall_squat", "step_up", "hip_abduction", "lunge"],
@@ -383,3 +383,51 @@ def recommend_exercises(
             })
 
     return all_recommendations
+
+
+def calculate_adaptive_reps(
+    assessed_peak_angle: float,
+    full_rom: float,
+    difficulty: str = "beginner",
+) -> int:
+    """
+    Calculate personalized rep target based on assessed mobility.
+
+    Args:
+        assessed_peak_angle: The peak angle the patient achieved during assessment
+        full_rom: The anatomical full ROM target for this exercise (from angleChecks targetMax)
+        difficulty: Exercise difficulty level
+
+    Returns:
+        Recommended number of reps (3-12)
+    """
+    if full_rom <= 0:
+        return 8  # fallback
+
+    # What percentage of full ROM can the patient achieve?
+    rom_pct = min((assessed_peak_angle / full_rom) * 100, 100)
+
+    # Map ROM percentage to rep count
+    if rom_pct < 25:
+        base_reps = 3   # Very limited — just 3 reps
+    elif rom_pct < 40:
+        base_reps = 4   # Low mobility
+    elif rom_pct < 55:
+        base_reps = 5
+    elif rom_pct < 70:
+        base_reps = 6   # Moderate
+    elif rom_pct < 80:
+        base_reps = 8   # Good
+    elif rom_pct < 90:
+        base_reps = 10  # Very good
+    else:
+        base_reps = 12  # Excellent / near-full ROM
+
+    # Difficulty adjustment
+    if difficulty == "intermediate":
+        base_reps = max(3, base_reps - 1)
+    elif difficulty == "advanced":
+        base_reps = max(3, base_reps - 2)
+
+    return base_reps
+

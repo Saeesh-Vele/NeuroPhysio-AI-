@@ -374,6 +374,253 @@ async def recommend(req: RecommendationRequest):
     return {"recommendations": recs, "count": len(recs)}
 
 
+class AssessmentRequest(BaseModel):
+    injury_type: str
+    injury_region: str = ""
+
+
+@app.post("/assess-mobility")
+async def assess_mobility(req: AssessmentRequest):
+    """Return 2-3 beginner exercises for mobility assessment during onboarding."""
+    from recommendation_engine import INJURY_SAFE_EXERCISES, DEFAULT_EXERCISES
+
+    injury_key = req.injury_type.lower().replace(" ", "_").replace("-", "_")
+    injury_exercises = INJURY_SAFE_EXERCISES.get(injury_key, DEFAULT_EXERCISES)
+    beginner_ids = injury_exercises.get("beginner", [])[:3]
+
+    assessment_exercises = []
+    for ex_id in beginner_ids:
+        ex = get_exercise_by_id(ex_id)
+        if ex:
+            rep_logic = ex.get("repLogic", {})
+            assessment_exercises.append({
+                "exerciseId": ex["id"],
+                "label": ex["label"],
+                "description": ex.get("description", ""),
+                "instructions": ex.get("instructions", []),
+                "category": ex.get("category", ""),
+                "fullRomRange": abs(rep_logic.get("upThreshold", 180) - rep_logic.get("downThreshold", 0)),
+                "upThreshold": rep_logic.get("upThreshold", 180),
+                "downThreshold": rep_logic.get("downThreshold", 0),
+            })
+
+    return {"exercises": assessment_exercises, "count": len(assessment_exercises)}
+
+
+class CalculateTargetsRequest(BaseModel):
+    injury_type: str
+    injury_region: str = ""
+    pain_regions: list = []
+    treatment_phase: str = "active_rehab"
+    age: int = 30
+    report_data: Optional[dict] = None
+    mobility_assessment: list = []  # [{exerciseId, peakAngle}]
+
+
+@app.post("/calculate-targets")
+async def calculate_targets(req: CalculateTargetsRequest):
+    """Calculate personalized rep targets based on mobility assessment."""
+    from recommendation_engine import calculate_adaptive_reps
+
+    # Build mobility map: exerciseId -> peakAngle
+    mobility_map = {}
+    for item in req.mobility_assessment:
+        mobility_map[item.get("exerciseId", "")] = item.get("peakAngle", 0)
+
+    recs = recommend_exercises(
+        injury_type=req.injury_type,
+        injury_region=req.injury_region,
+        pain_regions=req.pain_regions,
+        treatment_phase=req.treatment_phase,
+        age=req.age,
+        mobility_scores=None,
+        report_data=req.report_data,
+    )
+
+    # Adjust targets based on mobility assessment
+    for rec in recs:
+        ex = get_exercise_by_id(rec["exerciseId"])
+        if ex:
+            # Use the assessed peak angle for this exercise category
+            assessed_angle = mobility_map.get(rec["exerciseId"])
+            if assessed_angle is None:
+                # Try matching by category — use any assessed exercise from same category
+                for mid, angle in mobility_map.items():
+                    mex = get_exercise_by_id(mid)
+                    if mex and mex.get("category") == ex.get("category"):
+                        assessed_angle = angle
+                        break
+
+            if assessed_angle is not None:
+                full_rom = _get_exercise_full_rom(ex)
+                rec["targetReps"] = calculate_adaptive_reps(assessed_angle, full_rom, rec.get("difficulty", "beginner"))
+                rec["mobilityLevel"] = _get_mobility_level(assessed_angle, full_rom)
+
+    return {"recommendations": recs, "count": len(recs)}
+
+
+@app.post("/personalize-from-baseline")
+async def personalize_from_baseline(req: dict):
+    """
+    Given a user's first-session baseline data for each exercise,
+    compute personalized targets: reps, frequency (days/week), and estimated weeks to full ROM.
+    """
+    from recommendation_engine import calculate_adaptive_reps
+
+    baseline_exercises = req.get("baseline_exercises", [])
+    injury_type = req.get("injury_type", "")
+    age = req.get("age", 30)
+
+    personalized = []
+    for bl in baseline_exercises:
+        ex_id = bl.get("exerciseId", "")
+        peak_angle = bl.get("peakAngle", 0)
+        min_angle = bl.get("minAngle", 0)
+        rom = bl.get("rom", peak_angle - min_angle)
+        reps_done = bl.get("reps", 0)
+
+        ex = get_exercise_by_id(ex_id)
+        if not ex:
+            continue
+
+        # Smart ROM assessment using multiple signals
+        full_rom = _get_exercise_full_rom(ex)
+        rep_logic = ex.get("repLogic", {})
+        up_threshold = rep_logic.get("upThreshold", full_rom)
+        target_reps = ex.get("targetReps", 8)
+
+        # Use the actual ROM (range of motion = peak - min) for percentage
+        # This measures how much the patient actually MOVED, not just the highest static position
+        actual_rom = rom if rom > 0 else (peak_angle - min_angle if min_angle < 900 else peak_angle)
+        
+        # The functional full ROM is the exercise's movement range
+        # Use the rep counting range (upThreshold) as a practical target
+        functional_rom = max(up_threshold, full_rom * 0.6)
+        
+        # Cap actual_rom at functional_rom — angles beyond the exercise's target
+        # are MoveNet noise, not better mobility
+        actual_rom_capped = min(actual_rom, functional_rom * 1.1)
+        
+        # ROM percentage: how much of the functional range did the patient cover?
+        rom_pct = min((actual_rom_capped / max(functional_rom, 1)) * 100, 100) if actual_rom_capped > 0 else 0
+        
+        # Also factor in rep completion rate (did they finish the exercise?)
+        rep_factor = min(reps_done / max(target_reps, 1), 1.0)
+        
+        # Weighted score: 70% ROM ability + 30% rep completion
+        combined_pct = rom_pct * 0.7 + (rep_factor * 100) * 0.3
+        
+        mobility_level = _get_mobility_level_from_pct(combined_pct)
+
+        # Calculate adaptive rep target
+        target_reps_calc = calculate_adaptive_reps(actual_rom_capped, functional_rom, ex.get("difficulty", "beginner"))
+
+        # Frequency recommendation based on combined score
+        if combined_pct < 30:
+            freq_days = 7    # Daily — needs maximum work
+            freq_label = "Daily (7 days/week)"
+        elif combined_pct < 50:
+            freq_days = 6
+            freq_label = "6 days/week"
+        elif combined_pct < 65:
+            freq_days = 5
+            freq_label = "5 days/week"
+        elif combined_pct < 80:
+            freq_days = 4
+            freq_label = "4 days/week"
+        else:
+            freq_days = 3    # Good ROM — maintenance
+            freq_label = "3 days/week (maintenance)"
+
+        # Age adjustment
+        if age > 60:
+            freq_days = max(3, freq_days - 1)
+
+        # Estimated weeks to full ROM based on combined score
+        remaining_pct = 100 - combined_pct
+        if remaining_pct <= 5:
+            est_weeks = 1
+        elif remaining_pct < 15:
+            est_weeks = 2
+        elif remaining_pct < 30:
+            est_weeks = 4
+        elif remaining_pct < 50:
+            est_weeks = 8
+        elif remaining_pct < 70:
+            est_weeks = 12
+        else:
+            est_weeks = 16
+
+        # Sets recommendation
+        if combined_pct < 40:
+            sets = 2
+        elif combined_pct < 70:
+            sets = 3
+        else:
+            sets = 3
+
+        personalized.append({
+            "exerciseId": ex_id,
+            "exerciseLabel": ex.get("label", ex_id),
+            "category": ex.get("category", ""),
+            "baseline": {
+                "peakAngle": round(peak_angle, 1),
+                "minAngle": round(min_angle, 1),
+                "rom": round(actual_rom, 1),
+                "romPercentage": round(combined_pct, 1),
+                "mobilityLevel": mobility_level,
+                "repsCompleted": reps_done,
+            },
+            "prescription": {
+                "targetReps": target_reps_calc,
+                "sets": sets,
+                "frequencyDays": freq_days,
+                "frequencyLabel": freq_label,
+                "estimatedWeeksToFullRom": est_weeks,
+                "fullRom": round(functional_rom, 1),
+            },
+        })
+
+    return {"personalized": personalized, "count": len(personalized)}
+
+
+
+def _get_exercise_full_rom(ex: dict) -> float:
+    """
+    Get the actual anatomical full ROM target for an exercise.
+    Uses angleChecks[0].targetMax (the real target angle), NOT the rep threshold gap.
+    """
+    angle_checks = ex.get("angleChecks", [])
+    if angle_checks:
+        return angle_checks[0].get("targetMax", 180)
+    rep_logic = ex.get("repLogic", {})
+    return rep_logic.get("upThreshold", 180)
+
+
+def _get_mobility_level_from_pct(pct: float) -> str:
+    """Get mobility level from a combined percentage score."""
+    if pct < 30:
+        return "low"
+    elif pct < 55:
+        return "moderate"
+    elif pct < 80:
+        return "good"
+    return "excellent"
+
+
+def _get_mobility_level(peak_angle: float, full_rom: float) -> str:
+    if full_rom <= 0:
+        return "unknown"
+    pct = (peak_angle / full_rom) * 100
+    if pct < 40:
+        return "low"
+    elif pct < 70:
+        return "moderate"
+    elif pct < 90:
+        return "good"
+    return "excellent"
+
+
 # ═══════════════════════════════════════════════
 #  WEBSOCKET — Real-Time Pose Detection
 # ═══════════════════════════════════════════════
@@ -537,13 +784,26 @@ async def pose_websocket(websocket: WebSocket):
 
             accuracy = round((good_frames / total_frames * 100)) if total_frames > 0 else 0
 
+            # Debug: log peakAngle every 10 frames
+            if total_frames % 10 == 0:
+                rep_status_dbg = result["rep_status"]
+                angles_sample = {k: v for k, v in result["joint_angles"].items() if v is not None}
+                logger.info(f"   📊 Frame #{total_frames} | peakAngle={rep_status_dbg.get('peakAngle')} | attemptPeak={rep_status_dbg.get('currentAttemptPeak')} | angles={angles_sample}")
+
             try:
+                rep_status = result["rep_status"]
                 await websocket.send_json({
                     "keypoints": list(result["keypoints"].values()),
                     "coordinates": result["coordinates"],
                     "jointAngles": result["joint_angles"],
-                    "repCount": result["rep_status"]["reps"],
-                    "repState": result["rep_status"]["state"],
+                    "repCount": rep_status["reps"],
+                    "repState": rep_status["state"],
+                    "fullReps": rep_status.get("fullReps", 0),
+                    "partialReps": rep_status.get("partialReps", 0),
+                    "peakAngle": rep_status.get("peakAngle", 0),
+                    "maxRomAchieved": rep_status.get("maxRomAchieved", 0),
+                    "restAngle": rep_status.get("restAngle"),
+                    "currentAttemptPeak": rep_status.get("currentAttemptPeak", 0),
                     "accuracy": accuracy,
                     "feedback": result["feedback"],
                     "exerciseId": current_exercise_id or "",

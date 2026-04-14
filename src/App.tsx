@@ -19,6 +19,10 @@ import AIChat from "./pages/DashboardPage/tabs/AIChat";
 import DoctorReport from "./pages/DashboardPage/tabs/DoctorReport";
 import Settings from "./pages/DashboardPage/tabs/Settings";
 import { ToastContainer } from "./components/Toast/Toast";
+import { AuthProvider } from "./contexts/AuthContext";
+import { GamificationProvider } from "./contexts/GamificationContext";
+
+const MealsPage = React.lazy(() => import("./pages/DashboardPage/tabs/MealsPage"));
 
 /* ── Auth Guard ── */
 const ProtectedRoute: FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -101,46 +105,49 @@ const App: FC = () => {
   }
 
   return (
-    <>
-      <Routes>
-        {/* Public routes */}
-        <Route path="/" element={<LandingPage showToast={showToast} />} />
-        <Route path="/auth" element={<AuthPage showToast={showToast} />} />
+    <AuthProvider>
+      <GamificationProvider>
+        <Routes>
+          {/* Public routes */}
+          <Route path="/" element={<LandingPage showToast={showToast} />} />
+          <Route path="/auth" element={<AuthPage showToast={showToast} />} />
 
-        {/* Onboarding — after first signup */}
-        <Route
-          path="/onboarding"
-          element={
-            <OnboardingGuard>
-              <OnboardingPage />
-            </OnboardingGuard>
-          }
-        />
+          {/* Onboarding — after first signup */}
+          <Route
+            path="/onboarding"
+            element={
+              <OnboardingGuard>
+                <OnboardingPage />
+              </OnboardingGuard>
+            }
+          />
 
-        {/* Dashboard routes — protected */}
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <DashboardLayout />
-            </ProtectedRoute>
-          }
-        >
-          <Route index element={<DashboardHome />} />
-          <Route path="exercise" element={<ExerciseSession />} />
-          <Route path="pain-tracker" element={<PainTracker />} />
-          <Route path="cognitive" element={<CognitiveTrainer />} />
-          <Route path="progress" element={<Progress />} />
-          <Route path="ai-chat" element={<AIChat />} />
-          <Route path="doctor-report" element={<DoctorReport />} />
-          <Route path="settings" element={<Settings />} />
-        </Route>
+          {/* Dashboard routes — protected */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <DashboardLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<DashboardHome />} />
+            <Route path="exercise" element={<ExerciseSession />} />
+            <Route path="pain-tracker" element={<PainTracker />} />
+            <Route path="cognitive" element={<CognitiveTrainer />} />
+            <Route path="progress" element={<Progress />} />
+            <Route path="ai-chat" element={<AIChat />} />
+            <Route path="doctor-report" element={<DoctorReport />} />
+            <Route path="meals" element={<React.Suspense fallback={<div className="p-8 text-center text-slate-400">Loading Meals...</div>}><MealsPage /></React.Suspense>} />
+            <Route path="settings" element={<Settings />} />
+          </Route>
 
-        {/* Catch-all */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-      <ToastContainer toasts={toasts} />
-    </>
+          {/* Catch-all */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+        <ToastContainer toasts={toasts} />
+      </GamificationProvider>
+    </AuthProvider>
   );
 };
 

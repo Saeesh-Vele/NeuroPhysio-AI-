@@ -427,6 +427,48 @@ EXERCISES: List[Dict[str, Any]] = [
     #  SHOULDER REHABILITATION (12 exercises)
     # ═══════════════════════════════════════════
     {
+        "id": "arm_press",
+        "label": "Arm Press (Shoulder Press)",
+        "description": "Overhead arm press for shoulder strength and vertical mobility",
+        "category": "shoulder",
+        "targetMuscles": ["deltoids", "triceps", "upper_trapezius"],
+        "difficulty": "advanced",
+        "targetReps": 10,
+        "angleChecks": [
+            {
+                "name": "shoulder_angle",
+                "points": ["left_hip", "left_shoulder", "left_elbow"],
+                "targetMin": 160,
+                "targetMax": 180,
+                "feedbackLow": "Press higher overhead",
+                "feedbackHigh": "Perfect extension",
+                "feedbackGood": "Excellent press"
+            },
+            {
+                "name": "elbow_angle",
+                "points": ["left_shoulder", "left_elbow", "left_wrist"],
+                "targetMin": 160,
+                "targetMax": 180,
+                "feedbackLow": "Straighten the elbow completely",
+                "feedbackHigh": "Don't lock the elbow too hard",
+                "feedbackGood": "Good elbow extension"
+            }
+        ],
+        "repLogic": {
+            "primaryAngle": "elbow_angle",
+            "downThreshold": 90,
+            "upThreshold": 160,
+            "minHoldMs": 200
+        },
+        "contraindications": ["acute_shoulder_injury", "frozen_shoulder_acute"],
+        "instructions": [
+            "Sit or stand tall",
+            "Start with hands near shoulders, elbows bent at 90°",
+            "Smoothly press arms straight up overhead",
+            "Slowly lower back to starting position"
+        ]
+    },
+    {
         "id": "arm_raise",
         "label": "Arm Raise",
         "description": "Forward arm elevation for shoulder mobility",

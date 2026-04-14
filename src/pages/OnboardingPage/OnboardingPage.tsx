@@ -1,4 +1,4 @@
-import React, { useState, useRef, type FC } from "react";
+import React, { useState, useRef, useEffect, type FC } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth } from "../../firebase/config";
 import { saveUserProfile, saveExercisePlan } from "../../services/firestoreService";
@@ -8,6 +8,7 @@ import type { OnboardingData, PainRegion, ExtractedReportData, UserProfile } fro
 import "./OnboardingPage.css";
 
 const TOTAL_STEPS = 5;
+const BACKEND_URL = import.meta.env.VITE_PYTHON_BACKEND_URL || "http://localhost:8000";
 
 const INJURY_TYPES = [
   "ACL Reconstruction",
@@ -82,6 +83,7 @@ const OnboardingPage: FC = () => {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [reportProcessing, setReportProcessing] = useState(false);
   const [extractedData, setExtractedData] = useState<ExtractedReportData | null>(null);
+
 
   // ── Form helpers ──
   const updateField = <K extends keyof OnboardingData>(key: K, val: OnboardingData[K]) => {
@@ -175,8 +177,7 @@ const OnboardingPage: FC = () => {
 
       // Generate exercise plan via backend
       try {
-        const backendUrl = import.meta.env.VITE_PYTHON_BACKEND_URL || "http://localhost:8000";
-        const res = await fetch(`${backendUrl}/recommend`, {
+        const res = await fetch(`${BACKEND_URL}/recommend`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -224,6 +225,7 @@ const OnboardingPage: FC = () => {
 
   const next = () => { if (step < TOTAL_STEPS) setStep(step + 1); };
   const prev = () => { if (step > 1) setStep(step - 1); };
+
 
   const getPainColor = (intensity: number) => {
     if (intensity <= 3) return "var(--color-accent-text)";
@@ -588,6 +590,7 @@ const OnboardingPage: FC = () => {
               </div>
             </>
           )}
+
         </div>
 
         {/* Footer */}
