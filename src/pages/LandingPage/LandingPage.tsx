@@ -4,6 +4,7 @@ import type { ToastType } from "../../types";
 import Nav from "../../components/Nav/Nav";
 import HeroCanvas from "../../components/HeroCanvas/HeroCanvas";
 import StatItem from "../../components/StatItem/StatItem";
+import { FaBone, FaBrain, FaChartBar, FaRobot, FaStethoscope, FaLock } from "react-icons/fa";
 import "./LandingPage.css";
 
 interface LandingPageProps {
@@ -11,19 +12,19 @@ interface LandingPageProps {
 }
 
 const features = [
-  { icon: "🦴", title: "Joint Recovery Tracking",  desc: "AI-powered pose estimation tracks your joint angles, range of motion, and movement patterns in real time during every rehab session." },
-  { icon: "🧠", title: "Cognitive Memory Training", desc: "Interactive memory exercises and cognitive assessments that adapt difficulty based on your improvement trajectory." },
-  { icon: "📊", title: "Progress Analytics",        desc: "Comprehensive dashboards visualizing your recovery trends, exercise adherence, pain levels, and cognitive scores over time." },
-  { icon: "🤖", title: "Real-Time AI Feedback",     desc: "Instant corrective feedback during exercises — posture alerts, rep counting, and form guidance powered by machine learning." },
-  { icon: "🩺", title: "Doctor Reports",            desc: "Auto-generated physician reports summarizing recovery milestones, setbacks, and recommended next steps for your care team." },
-  { icon: "🔒", title: "Secure & Private",          desc: "HIPAA-compliant data handling with end-to-end encryption — your health data stays safe and private at all times." },
+  { icon: <FaBone color="#4ade80" size={24} />, title: "Joint Recovery Tracking", desc: "AI-powered pose estimation tracks your joint angles, range of motion, and movement patterns in real time during every rehab session." },
+  { icon: <FaBrain color="#4ade80" size={24} />, title: "Cognitive Memory Training", desc: "Interactive memory exercises and cognitive assessments that adapt difficulty based on your improvement trajectory." },
+  { icon: <FaChartBar color="#4ade80" size={24} />, title: "Progress Analytics", desc: "Comprehensive dashboards visualizing your recovery trends, exercise adherence, pain levels, and cognitive scores over time." },
+  { icon: <FaRobot color="#4ade80" size={24} />, title: "Real-Time AI Feedback", desc: "Instant corrective feedback during exercises — posture alerts, rep counting, and form guidance powered by machine learning." },
+  { icon: <FaStethoscope color="#4ade80" size={24} />, title: "Doctor Reports", desc: "Auto-generated physician reports summarizing recovery milestones, setbacks, and recommended next steps for your care team." },
+  { icon: <FaLock color="#4ade80" size={24} />, title: "Secure & Private", desc: "HIPAA-compliant data handling with end-to-end encryption — your health data stays safe and private at all times." },
 ];
 
 const steps = [
-  { title: "Sign Up",              desc: "Create your account as a patient, caretaker, or physician in seconds." },
-  { title: "Set Up Your Profile",  desc: "Enter your injury details, recovery goals, and baseline metrics to personalize your rehab plan." },
-  { title: "Train & Recover",      desc: "Follow guided exercises with real-time AI feedback, track joint mobility, and complete cognitive challenges." },
-  { title: "Analyze & Improve",    desc: "Review your progress analytics, share reports with your doctor, and adapt your recovery roadmap." },
+  { title: "Sign Up", desc: "Create your account as a patient, caretaker, or physician in seconds." },
+  { title: "Set Up Your Profile", desc: "Enter your injury details, recovery goals, and baseline metrics to personalize your rehab plan." },
+  { title: "Train & Recover", desc: "Follow guided exercises with real-time AI feedback, track joint mobility, and complete cognitive challenges." },
+  { title: "Analyze & Improve", desc: "Review your progress analytics, share reports with your doctor, and adapt your recovery roadmap." },
 ];
 
 const LandingPage: FC<LandingPageProps> = () => {
@@ -38,10 +39,10 @@ const LandingPage: FC<LandingPageProps> = () => {
       {/* Stats bar */}
       <div className="stats-bar">
         <div className="stats-bar__inner container">
-          <StatItem count={5}   suffix="K+" label="Patients Recovered" />
-          <StatItem count={96}  suffix="%"  label="Recovery Accuracy" />
-          <StatItem count={120} suffix="+"  label="Clinics Partnered" />
-          <StatItem count={35}  suffix="%"  label="Faster Recovery" />
+          <StatItem count={5} suffix="K+" label="Patients Recovered" />
+          <StatItem count={96} suffix="%" label="Recovery Accuracy" />
+          <StatItem count={120} suffix="+" label="Clinics Partnered" />
+          <StatItem count={35} suffix="%" label="Faster Recovery" />
         </div>
       </div>
 
@@ -95,9 +96,6 @@ const LandingPage: FC<LandingPageProps> = () => {
             <button className="btn btn-primary" onClick={() => navigate("/auth")}>
               Begin Your Recovery
             </button>
-            <button className="btn btn-outline" onClick={() => navigate("/dashboard")}>
-              View Dashboard Demo
-            </button>
           </div>
         </div>
       </section>
@@ -122,14 +120,14 @@ const LandingPage: FC<LandingPageProps> = () => {
               <ul>
                 <li><a href="#features">Features</a></li>
                 <li><a href="#how-it-works">How It Works</a></li>
-                <li><button style={{ background:"none",border:"none",cursor:"pointer",color:"var(--color-grey-200)",fontSize:14,padding:0 }} onClick={() => navigate("/dashboard")}>Dashboard</button></li>
+                <li><button style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-grey-200)", fontSize: 14, padding: 0 }} onClick={() => navigate("/dashboard")}>Dashboard</button></li>
               </ul>
             </div>
             <div className="footer__links-group">
               <h4>Account</h4>
               <ul>
-                <li><button style={{ background:"none",border:"none",cursor:"pointer",color:"var(--color-grey-200)",fontSize:14,padding:0 }} onClick={() => navigate("/auth")}>Login</button></li>
-                <li><button style={{ background:"none",border:"none",cursor:"pointer",color:"var(--color-grey-200)",fontSize:14,padding:0 }} onClick={() => navigate("/auth")}>Sign Up</button></li>
+                <li><button style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-grey-200)", fontSize: 14, padding: 0 }} onClick={() => navigate("/auth")}>Login</button></li>
+                <li><button style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-grey-200)", fontSize: 14, padding: 0 }} onClick={() => navigate("/auth")}>Sign Up</button></li>
               </ul>
             </div>
             <div className="footer__links-group">
