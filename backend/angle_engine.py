@@ -4,89 +4,204 @@ Pure math. Zero exercise logic.
 Three points in → one angle out.
 """
 
-import numpy as np
+from math import acos, degrees, sqrt
 from typing import Optional, Tuple, Dict
 
+# ----------------------------
+# Type definitions
+# ----------------------------
+
+Point = Tuple[float, float]
+Keypoint = Dict[str, float]
+Keypoints = Dict[str, Keypoint]
+
+# ----------------------------
+# Joint angle definitions
+# ----------------------------
+
+ANGLE_MAP = {
+    # Shoulder
+    "left_shoulder_angle": ("left_hip", "left_shoulder", "left_elbow"),
+    "right_shoulder_angle": ("right_hip", "right_shoulder", "right_elbow"),
+
+    # Elbow
+    "left_elbow_angle": ("left_shoulder", "left_elbow", "left_wrist"),
+    "right_elbow_angle": ("right_shoulder", "right_elbow", "right_wrist"),
+
+    # Hip
+    "left_hip_angle": ("left_shoulder", "left_hip", "left_knee"),
+    "right_hip_angle": ("right_shoulder", "right_hip", "right_knee"),
+
+    # Knee
+    "left_knee_angle": ("left_hip", "left_knee", "left_ankle"),
+    "right_knee_angle": ("right_hip", "right_knee", "right_ankle"),
+}
+
+
+# ----------------------------
+# Core angle calculation
+# ----------------------------
+
 def calculate_angle(
-    a: Tuple[float, float],
-    b: Tuple[float, float],
-    c: Tuple[float, float]
+    a: Point,
+    b: Point,
+    c: Point
 ) -> float:
     """
-    Calculate the angle at vertex B formed by points A-B-C.
-    Returns angle in degrees (0–180).
+    Calculate angle at point B formed by A-B-C.
+
+    Returns:
+        float: angle in degrees (0–180)
     """
-    a = np.array(a)
-    b = np.array(b)
-    c = np.array(c)
 
-    ba = a - b
-    bc = c - b
+    # Vector BA
+    bax = a[0] - b[0]
+    bay = a[1] - b[1]
 
-    cos_angle = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc) + 1e-8)
-    cos_angle = np.clip(cos_angle, -1.0, 1.0)
-    angle = np.degrees(np.arccos(cos_angle))
+    # Vector BC
+    bcx = c[0] - b[0]
+    bcy = c[1] - b[1]
+
+    # Dot product
+    dot = bax * bcx + bay * bcy
+
+    # Magnitudes
+    mag_ba = sqrt(bax**2 + bay**2)
+    mag_bc = sqrt(bcx**2 + bcy**2)
+
+    # Prevent division by zero
+    if mag_ba == 0 or mag_bc == 0:
+        return 0.0
+
+    # Cosine formula
+    cos_angle = dot / (mag_ba * mag_bc)
+
+    # Numerical safety
+    cos_angle = max(-1.0, min(1.0, cos_angle))
+
+    angle = degrees(acos(cos_angle))
 
     return float(angle)
 
 
+# ----------------------------
+# Keypoint utilities
+# ----------------------------
+
 def get_keypoint(
-    keypoints: Dict[str, dict],
+    keypoints: Keypoints,
     name: str,
     confidence_threshold: float = 0.3
-) -> Optional[Tuple[float, float]]:
+) -> Optional[Point]:
     """
-    Return (x, y) for a named keypoint if confidence >= threshold.
-    Returns None otherwise.
+    Return (x,y) if keypoint confidence is valid.
+
+    Returns:
+        (x,y) tuple or None
     """
+
     kp = keypoints.get(name)
+
     if kp is None:
         return None
-    if kp.get("score", 0) < confidence_threshold:
-        return None
-    return (kp["x"], kp["y"])
 
+    if kp.get("score", 0.0) < confidence_threshold:
+        return None
+
+    return (
+        kp["x"],
+        kp["y"]
+    )
+
+
+# ----------------------------
+# Backward-compatible API
+# ----------------------------
 
 def get_angle(
-    keypoints: Dict[str, dict],
+    keypoints: Keypoints,
     points: Tuple[str, str, str],
     confidence_threshold: float = 0.3
 ) -> Optional[float]:
     """
-    Calculate angle from three named keypoints.
-    Returns None if any point has low confidence.
-    """
-    a = get_keypoint(keypoints, points[0], confidence_threshold)
-    b = get_keypoint(keypoints, points[1], confidence_threshold)
-    c = get_keypoint(keypoints, points[2], confidence_threshold)
+    Calculate angle using named keypoints.
 
-    if a is None or b is None or c is None:
+    Example:
+        get_angle(
+            keypoints,
+            ("left_hip","left_knee","left_ankle")
+        )
+    """
+
+    a = get_keypoint(
+        keypoints,
+        points[0],
+        confidence_threshold
+    )
+
+    b = get_keypoint(
+        keypoints,
+        points[1],
+        confidence_threshold
+    )
+
+    c = get_keypoint(
+        keypoints,
+        points[2],
+        confidence_threshold
+    )
+
+    if None in (a, b, c):
         return None
 
     return calculate_angle(a, b, c)
 
 
-def calculate_all_joint_angles(keypoints: Dict[str, dict]) -> Dict[str, Optional[float]]:
+# ----------------------------
+# Batch angle calculation
+# ----------------------------
+
+def calculate_all_joint_angles(
+    keypoints: Keypoints,
+    confidence_threshold: float = 0.3
+) -> Dict[str, Optional[float]]:
     """
-    Calculate all standard joint angles from keypoints.
-    Returns dict of angle_name → angle_degrees (or None).
+    Calculate all joint angles.
+
+    Returns:
+        {
+            "left_knee_angle": 165.2,
+            "right_knee_angle": None,
+            ...
+        }
     """
-    angles = {}
 
-    # Shoulder angles
-    angles["left_shoulder_angle"] = get_angle(keypoints, ("left_hip", "left_shoulder", "left_elbow"))
-    angles["right_shoulder_angle"] = get_angle(keypoints, ("right_hip", "right_shoulder", "right_elbow"))
+    results = {}
 
-    # Elbow angles
-    angles["left_elbow_angle"] = get_angle(keypoints, ("left_shoulder", "left_elbow", "left_wrist"))
-    angles["right_elbow_angle"] = get_angle(keypoints, ("right_shoulder", "right_elbow", "right_wrist"))
+    # Cache keypoints once
+    valid_points = {
+        name: get_keypoint(
+            keypoints,
+            name,
+            confidence_threshold
+        )
+        for triple in ANGLE_MAP.values()
+        for name in triple
+    }
 
-    # Hip angles
-    angles["left_hip_angle"] = get_angle(keypoints, ("left_shoulder", "left_hip", "left_knee"))
-    angles["right_hip_angle"] = get_angle(keypoints, ("right_shoulder", "right_hip", "right_knee"))
+    for angle_name, (p1, p2, p3) in ANGLE_MAP.items():
 
-    # Knee angles
-    angles["left_knee_angle"] = get_angle(keypoints, ("left_hip", "left_knee", "left_ankle"))
-    angles["right_knee_angle"] = get_angle(keypoints, ("right_hip", "right_knee", "right_ankle"))
+        a = valid_points[p1]
+        b = valid_points[p2]
+        c = valid_points[p3]
 
-    return angles
+        if None in (a, b, c):
+            results[angle_name] = None
+        else:
+            results[angle_name] = calculate_angle(
+                a,
+                b,
+                c
+            )
+
+    return results
