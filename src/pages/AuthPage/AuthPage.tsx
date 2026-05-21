@@ -9,7 +9,8 @@ import {
   sendPasswordResetEmail,
 } from "firebase/auth";
 import { auth } from "../../firebase/config";
-import { checkOnboardingComplete } from "../../services/firestoreService";
+import { getUserProfile } from "../../services/firestoreService";
+import { useAppStore } from "../../store/useAppStore";
 import type { ToastType } from "../../types";
 import "./AuthPage.css";
 
@@ -118,6 +119,8 @@ const AuthPage: FC<AuthPageProps> = ({ showToast }) => {
     return map[code] || "Something went wrong. Please try again.";
   };
 
+  const { setFirebaseUser, setUser, setOnboardingComplete } = useAppStore();
+
   /* ── Sign In ─────────────────────────────────────────── */
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -128,9 +131,16 @@ const AuthPage: FC<AuthPageProps> = ({ showToast }) => {
     setIsLoading(true);
     try {
       const cred = await signInWithEmailAndPassword(auth, siEmail, siPwd);
-      const complete = await checkOnboardingComplete(cred.user.uid);
+      // Fetch profile and update store before navigating so route guards have correct state
+      const profile = await getUserProfile(cred.user.uid);
+      const complete = profile?.onboardingComplete ?? false;
+      setFirebaseUser({ uid: cred.user.uid, email: cred.user.email, displayName: cred.user.displayName });
+      if (profile) {
+        setUser(profile);
+        setOnboardingComplete(complete);
+      }
       showToast("Welcome back! Redirecting…");
-      setTimeout(() => navigate(complete ? "/dashboard" : "/onboarding"), 1000);
+      navigate(complete ? "/dashboard" : "/onboarding");
     } catch (err: any) {
       showToast(friendlyError(err.code), "error");
     } finally {
@@ -163,9 +173,16 @@ const AuthPage: FC<AuthPageProps> = ({ showToast }) => {
     const provider = new GoogleAuthProvider();
     try {
       const cred = await signInWithPopup(auth, provider);
-      const complete = await checkOnboardingComplete(cred.user.uid);
+      // Fetch profile and update store before navigating so route guards have correct state
+      const profile = await getUserProfile(cred.user.uid);
+      const complete = profile?.onboardingComplete ?? false;
+      setFirebaseUser({ uid: cred.user.uid, email: cred.user.email, displayName: cred.user.displayName });
+      if (profile) {
+        setUser(profile);
+        setOnboardingComplete(complete);
+      }
       showToast("Signed in with Google! Redirecting…");
-      setTimeout(() => navigate(complete ? "/dashboard" : "/onboarding"), 1000);
+      navigate(complete ? "/dashboard" : "/onboarding");
     } catch (err: any) {
       showToast(friendlyError(err.code), "error");
     } finally {

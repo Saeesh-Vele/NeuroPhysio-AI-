@@ -46,6 +46,10 @@ const App: FC = () => {
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
+      // Re-enable loading gate on every auth state change so routes
+      // don't render with stale isOnboardingComplete before the profile loads
+      setAuthLoading(true);
+
       if (user) {
         setFirebaseUser({
           uid: user.uid,
@@ -54,16 +58,37 @@ const App: FC = () => {
         });
         // Check onboarding
         const profile = await getUserProfile(user.uid);
+        console.log("[App] onAuthStateChanged — profile from Firestore:", JSON.stringify(profile, null, 2));
+        console.log("[App] onAuthStateChanged — profile?.onboardingComplete:", profile?.onboardingComplete);
+
         if (profile) {
           setUser(profile);
-          setOnboardingComplete(profile.onboardingComplete);
+          if (profile.onboardingComplete) {
+            setOnboardingComplete(true);
+          } else {
+            // Only set to false if the Zustand store doesn't already have it as true
+            // (protects against race: handleComplete set it true locally but Firestore
+            //  write hasn't propagated or failed)
+            const currentStoreValue = useAppStore.getState().isOnboardingComplete;
+            if (!currentStoreValue) {
+              setOnboardingComplete(false);
+            } else {
+              console.warn("[App] Firestore profile missing onboardingComplete but store has it true — keeping true");
+            }
+          }
           // Load exercise plan from Firestore so it persists across refreshes
           try {
             const plan = await getLatestExercisePlan(user.uid);
             if (plan) setExercisePlan(plan);
           } catch { /* ignore */ }
         } else {
-          setOnboardingComplete(false);
+          // No profile in Firestore at all — only reset if store doesn't already know better
+          const currentStoreValue = useAppStore.getState().isOnboardingComplete;
+          if (!currentStoreValue) {
+            setOnboardingComplete(false);
+          } else {
+            console.warn("[App] No Firestore profile but store has onboardingComplete=true — keeping true");
+          }
         }
       } else {
         setFirebaseUser(null);

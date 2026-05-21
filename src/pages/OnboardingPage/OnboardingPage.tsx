@@ -150,66 +150,72 @@ const OnboardingPage: FC = () => {
     if (!user) return;
 
     setIsLoading(true);
+
+    const profile: UserProfile = {
+      uid: user.uid,
+      name: formData.name,
+      email: user.email || "",
+      age: formData.age,
+      gender: formData.gender,
+      height: formData.height,
+      weight: formData.weight,
+      injuryType: formData.injuryType,
+      injuryRegion: formData.injuryRegion,
+      surgeryDate: formData.surgeryDate,
+      treatmentPhase: formData.treatmentPhase,
+      painRegions: formData.painRegions,
+      recoveryGoals: formData.recoveryGoals,
+      onboardingComplete: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      ...(extractedData ? { reportData: extractedData } : {}),
+    };
+
+    // Set local state immediately so navigation guards allow dashboard access
+    setUser(profile);
+    setOnboardingComplete(true);
+
+    // Save to Firestore — this MUST succeed for subsequent logins to go to dashboard
     try {
-      const profile: UserProfile = {
-        uid: user.uid,
-        name: formData.name,
-        email: user.email || "",
-        age: formData.age,
-        gender: formData.gender,
-        height: formData.height,
-        weight: formData.weight,
-        injuryType: formData.injuryType,
-        injuryRegion: formData.injuryRegion,
-        surgeryDate: formData.surgeryDate,
-        treatmentPhase: formData.treatmentPhase,
-        painRegions: formData.painRegions,
-        recoveryGoals: formData.recoveryGoals,
-        onboardingComplete: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        ...(extractedData ? { reportData: extractedData } : {}),
-      };
-
+      console.log("[Onboarding] Saving profile to Firestore with onboardingComplete:", profile.onboardingComplete);
       await saveUserProfile(profile);
-      setUser(profile);
-      setOnboardingComplete(true);
-
-      // Generate exercise plan via backend
-      try {
-        const res = await fetch(`${BACKEND_URL}/recommend`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            injury_type: formData.injuryType,
-            injury_region: formData.injuryRegion,
-            pain_regions: formData.painRegions,
-            treatment_phase: formData.treatmentPhase,
-            age: formData.age,
-            report_data: extractedData || null,
-          }),
-        });
-        if (res.ok) {
-          const data = await res.json();
-          const plan = {
-            userId: user.uid,
-            exercises: data.recommendations,
-            generatedAt: new Date().toISOString(),
-            basedOn: "onboarding",
-          };
-          await saveExercisePlan(plan);
-          setExercisePlan(plan);
-        }
-      } catch (err) {
-        console.warn("Exercise recommendation failed:", err);
-      }
-
-      navigate("/dashboard");
+      console.log("[Onboarding] ✅ Profile saved to Firestore successfully");
     } catch (err) {
-      console.error("Onboarding save error:", err);
-    } finally {
-      setIsLoading(false);
+      console.error("[Onboarding] ❌ CRITICAL: Firestore save FAILED — next login will redirect to onboarding!", err);
+      // Despite failure, user can still proceed this session
     }
+
+    // Generate exercise plan via backend (non-blocking)
+    try {
+      const res = await fetch(`${BACKEND_URL}/recommend`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          injury_type: formData.injuryType,
+          injury_region: formData.injuryRegion,
+          pain_regions: formData.painRegions,
+          treatment_phase: formData.treatmentPhase,
+          age: formData.age,
+          report_data: extractedData || null,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const plan = {
+          userId: user.uid,
+          exercises: data.recommendations,
+          generatedAt: new Date().toISOString(),
+          basedOn: "onboarding",
+        };
+        await saveExercisePlan(plan);
+        setExercisePlan(plan);
+      }
+    } catch (err) {
+      console.warn("Exercise recommendation failed:", err);
+    }
+
+    setIsLoading(false);
+    navigate("/dashboard");
   };
 
   const canProceed = () => {
