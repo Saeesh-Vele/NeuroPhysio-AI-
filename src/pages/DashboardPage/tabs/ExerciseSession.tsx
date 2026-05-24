@@ -317,6 +317,8 @@ const ExerciseSession: FC = () => {
         }
 
         // Draw the annotated frame (with skeleton drawn by backend) on canvas
+        // We flip the image horizontally within the canvas so the body is mirrored
+        // (matching the selfie-view video) but text overlays render correctly.
         if (data.annotatedFrame && canvasRef.current) {
           const ctx = canvasRef.current.getContext("2d");
           if (ctx) {
@@ -324,7 +326,11 @@ const ExerciseSession: FC = () => {
             img.onload = () => {
               canvasRef.current!.width = img.width;
               canvasRef.current!.height = img.height;
+              ctx.save();
+              ctx.translate(img.width, 0);
+              ctx.scale(-1, 1);
               ctx.drawImage(img, 0, 0);
+              ctx.restore();
             };
             img.src = `data:image/jpeg;base64,${data.annotatedFrame}`;
           }
@@ -912,7 +918,6 @@ const ExerciseSession: FC = () => {
                         top: 0, left: 0,
                         width: "100%", height: "100%",
                         objectFit: "cover",
-                        transform: "scaleX(-1)",
                         pointerEvents: "none",
                         zIndex: 2,
                       }}
